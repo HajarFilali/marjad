@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "./moroccan-theme.css";
+
+@theme inline {
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-terracotta: #c4622d;
+  --color-gold: #d4a853;
+  --color-border-subtle: #f0eae1;
+}
+
+html, body {
+  background-color: #ffffff;
+  color: #000000;
+  font-family: var(--font-sans), sans-serif;
+  overflow-x: clip;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+}
+
+/* Neutraliser la couleur bleue/jaune d'autocomplétion des navigateurs (Chrome/Edge/Safari) pour garder les champs 100% blancs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #1c1917 !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  caret-color: #1c1917 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:autofill {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  filter: none !important;
+}
+
+/* Anti-flash & scroll state overrides for hero card, promo bar and navbar */
+html.is-scrolled-page .fused-hero-card-container {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.is-scrolled-page .promo-bar-container {
+  display: none !important;
+  opacity: 0 !important;
+  transform: translateY(-100%) !important;
+  pointer-events: none !important;
+}
+
+html.is-scrolled-page nav {
+  top: 12px !important;
+  border-bottom-left-radius: 9999px !important;
+}
+
+html.is-scrolled-page nav > .nav-bg-overlay {
+  border-bottom-left-radius: 9999px !important;
+  background: #ffffff !important;
+}
+
+

@@ -1,0 +1,475 @@
+/* =====================================================================
+   MARJAD - PALETTE & STYLES OFFICIELS (Fond 100% Blanc)
+   Couleurs :
+   #000000 | #ffffff | #c4622d | #d4a853
+   ===================================================================== */
+
+:root {
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-terracotta: #c4622d;
+  --color-gold: #d4a853;
+
+  --color-terracotta-dark: #9e461a;
+  --color-terracotta-light: #e07f4b;
+  --color-gold-light: #e8bf6f;
+  --color-border: #f0eae1;
+}
+
+/* Fond 100% Blanc demandé pour tout le site */
+html, body {
+  background-color: #ffffff;
+  color: #000000;
+  overflow-x: hidden;
+  /* Masquer la barre de défilement (Scrollbar cachée mais défilement actif) */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Masquer la scrollbar sur Chrome, Safari, Edge et Webkit */
+::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+
+/* Animation Défilement Infini pour la Promo Bar (Droite vers Gauche) */
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Animation Défilement Continu de Gauche vers Droite (Left-to-Right) pour le Footer */
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-ltr {
+  display: flex;
+  width: max-content;
+  animation: marquee-ltr 28s linear infinite;
+}
+
+.animate-marquee-ltr:hover {
+  animation-play-state: paused;
+}
+
+/* Animation Défilement Continu pour les Vidéos */
+@keyframes marquee-videos {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-videos {
+  display: flex;
+  width: max-content;
+  animation: marquee-videos 35s linear infinite;
+}
+
+.animate-marquee-videos:hover {
+  animation-play-state: paused;
+}
+
+/* ==========================================================================
+   Hero Section 4-Card Rotating Carousel Slots (Dynamic & Responsive)
+   Clockwise motion: Slot 0 -> Slot 1 -> Slot 2 -> Slot 3 -> Slot 0
+   ========================================================================== */
+
+.hero-card-animated {
+  position: absolute;
+  border-radius: 26px;
+  overflow: hidden;
+  transition-property: left, top, width, height, transform;
+  transition-duration: 650ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: left, top, width, height;
+}
+
+/* Base (Laptops / Desktops) */
+/* Slot 0: Top-Left (Portrait) */
+.hero-slot-0 {
+  left: 75px;
+  top: 0px;
+  width: 170px;
+  height: 205px;
+  z-index: 10;
+}
+
+/* Slot 1: Top-Right (Landscape) */
+.hero-slot-1 {
+  left: 260px;
+  top: 35px;
+  width: 250px;
+  height: 170px;
+  z-index: 20;
+}
+
+/* Slot 2: Bottom-Right (Portrait) */
+.hero-slot-2 {
+  left: 260px;
+  top: 220px;
+  width: 170px;
+  height: 205px;
+  z-index: 15;
+}
+
+/* Slot 3: Bottom-Left (Landscape) */
+.hero-slot-3 {
+  left: 0px;
+  top: 215px;
+  width: 250px;
+  height: 170px;
+  z-index: 12;
+}
+
+/* شاشات الحواسيب العادية (XL: min-width: 1280px) */
+@media (min-width: 1280px) {
+  .hero-slot-0 {
+    left: 85px;
+    top: 0px;
+    width: 180px;
+    height: 215px;
+  }
+  .hero-slot-1 {
+    left: 280px;
+    top: 35px;
+    width: 265px;
+    height: 180px;
+  }
+  .hero-slot-2 {
+    left: 280px;
+    top: 230px;
+    width: 180px;
+    height: 215px;
+  }
+  .hero-slot-3 {
+    left: 0px;
+    top: 225px;
+    width: 265px;
+    height: 180px;
+  }
+}
+
+/* الشاشات الكبيرة (2XL: min-width: 1536px) */
+@media (min-width: 1536px) {
+  .hero-slot-0 {
+    left: 95px;
+    top: 0px;
+    width: 195px;
+    height: 230px;
+  }
+  .hero-slot-1 {
+    left: 305px;
+    top: 40px;
+    width: 285px;
+    height: 190px;
+  }
+  .hero-slot-2 {
+    left: 305px;
+    top: 245px;
+    width: 195px;
+    height: 230px;
+  }
+  .hero-slot-3 {
+    left: 0px;
+    top: 240px;
+    width: 285px;
+    height: 190px;
+  }
+}
+
+/* ==========================================================================
+   Hero Section Apple Liquid Glass Panel (Transparent & Flouté / Mdebdeb)
+   "غادي يكون ترونسبارون، غير هو بحال لا مضبب، الباغراوند كتبان مضببة"
+   Exact Reference: Photoshop Glassmorphism (https://pin.it/4iLKzNr1W)
+   ========================================================================== */
+.hero-glass-card,
+.apple-liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.10) 60%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.80);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.70);
+  border-radius: 42px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.30),
+    0 10px 25px -5px rgba(0, 0, 0, 0.15),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.80),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.08),
+    inset 0 0 24px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   Feel-Like-Glass Navbar (Pinterest Reference: pin.it/4iLKzNr1W)
+   Silky Frosted Glassmorphism with 24px blur, specular highlight & luminous border
+   ========================================================================== */
+.glass-navbar {
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  transition: background 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Glass Navbar at the Top (Over Hero Section) */
+.glass-navbar-top {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.50) 0%,
+    rgba(255, 255, 255, 0.25) 100%
+  );
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.06),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.90);
+}
+
+/* Glass Navbar when Scrolled Down (Fixed over page content) */
+.glass-navbar-scrolled {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.75) 100%
+  );
+  border-bottom: 1.5px solid rgba(235, 216, 190, 0.45);
+  box-shadow: 
+    0 12px 36px -4px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* ==========================================================================
+   Apple Liquid Glass Exact Video Animation (Pinterest Ref: pin.it/15TvyTRKe)
+   Phase 1: Glass lens blooms into view EMPTY with intense refraction & bevel (0.2s -> 1.1s)
+   Phase 2: Text content smoothly fades and slides in inside the glass (1.1s -> 1.8s)
+   ========================================================================== */
+
+/* 1. Émergence de la lentille de verre vide (Glass Lens Bloom) */
+@keyframes apple-glass-lens-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.apple-liquid-glass {
+  position: relative;
+  overflow: hidden;
+  animation: apple-glass-lens-bloom 1.05s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  will-change: transform, opacity;
+}
+
+/* 2. Balayage lumineux de reflet sur le verre liquide (Liquid Sheen) */
+@keyframes apple-glass-sheen {
+  0% {
+    transform: translateX(-140%) skewX(-22deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(250%) skewX(-22deg);
+    opacity: 0;
+  }
+}
+
+.liquid-sheen-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0.45) 48%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.45) 52%,
+    rgba(255, 255, 255, 0.05) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  animation: apple-glass-sheen 1.5s cubic-bezier(0.2, 0.9, 0.3, 1) 0.7s both;
+}
+
+/* 3. Révélation en douceur des textes à l'intérieur une fois le verre installé (Phase 2) */
+@keyframes apple-glass-content-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-liquid-item-1 {
+  animation: apple-glass-content-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.1s both;
+}
+
+.animate-liquid-item-2 {
+  animation: apple-glass-content-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) 1.25s both;
+}
+
+.animate-liquid-item-3 {
+  animation: apple-glass-content-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) 1.4s both;
+}
+
+.animate-liquid-item-4 {
+  animation: apple-glass-content-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) 1.55s both;
+}
+
+/* Animation de transition fluide pour les onglets du Modal Support */
+@keyframes modal-tab-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-enter {
+  animation: modal-tab-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animations douces et apaisantes pour les bulles d'ambiance */
+@keyframes ambientBubbleFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.02);
+  }
+}
+
+@keyframes ambientBubbleFloatReverse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.animate-bubble-float {
+  animation: ambientBubbleFloat 8s ease-in-out infinite;
+}
+
+.animate-bubble-float-reverse {
+  animation: ambientBubbleFloatReverse 10s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Bouton Commande Express - Animation Signal & Shimmer Lumineux
+   Attire l'attention du client avec pulsation douce & éclat de lumière
+   ========================================================================== */
+@keyframes cta-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(186, 78, 26, 0.4), 0 8px 18px -4px rgba(186, 78, 26, 0.28);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(186, 78, 26, 0), 0 12px 24px -3px rgba(186, 78, 26, 0.42);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes cta-shimmer-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  35%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.animate-cta-signal {
+  animation: cta-pulse-glow 2.6s ease-in-out infinite;
+}
+
+.animate-cta-signal:hover {
+  animation: none;
+  transform: scale(1.025);
+  box-shadow: 0 12px 28px -4px rgba(186, 78, 26, 0.5);
+}
+
+.animate-cta-shimmer {
+  animation: cta-shimmer-sweep 3s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Roue Carrousel Tournante Page Login (Ferris Wheel / العجلة الدوارة)
+   Rotation fluide dans le sens des aiguilles d'une montre avec contre-rotation
+   ========================================================================== */
+@keyframes marjadFerrisWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes marjadFerrisWheelCounter {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.animate-ferris-spin {
+  animation: marjadFerrisWheelSpin 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-ferris-counter {
+  animation: marjadFerrisWheelCounter 30s linear infinite;
+  will-change: transform;
+}
+
+.wheel-hover-container:hover .animate-ferris-spin,
+.wheel-hover-container:hover .animate-ferris-counter {
+  animation-play-state: paused;
+}
