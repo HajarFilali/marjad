@@ -23,6 +23,7 @@ import {
   Search,
   TrendingUp,
   Award,
+  ShieldCheck,
   ShieldAlert,
   PackageX,
   AlertOctagon,
@@ -533,8 +534,8 @@ export default function AdminDashboardPage() {
       <AdminHeader
         title="MARJAD - Direction Générale"
         subtitle={
-          <div className="flex items-center gap-2 text-xs text-[#6B7280] font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 text-xs text-[#6B7280] font-medium">
+            <ShieldCheck className="w-4 h-4 text-[#6d381e] shrink-0" />
             <span>Maison d&apos;Artisanat Marocain d&apos;Exception • Vue Globale Atelier & Ventes</span>
           </div>
         }
