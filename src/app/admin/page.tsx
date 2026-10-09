@@ -583,158 +583,205 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* 3. ROW 2: BEST SELLERS (5 PIECES) + 4 ADMIN SHORTCUTS */}
-      <div className="flex flex-col lg:flex-row items-stretch gap-4 sm:gap-5">
-        {/* Left: Top Best-Selling Products from the boutique */}
-        <div className="flex-1 min-w-0 bg-[#FAF7F2] border border-[#E9DCD5] rounded-3xl p-4 sm:p-5 flex flex-col justify-between shadow-2xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E9DCD5]/60 mb-3">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#ba4e1a]" />
-              <h3 className="font-serif font-bold text-sm sm:text-base text-[#1F2937]">
-                Créations Artisanales Best-Sellers
-              </h3>
-            </div>
-            <span className="text-[10px] font-bold text-[#6d381e] bg-[#6d381e]/10 px-2.5 py-0.5 rounded-full">
-              Top Ventes Boutique
-            </span>
-          </div>
+      {/* 3. ROW 2: TOP 5 BEST-SELLING PRODUCTS + 4 ESSENTIAL ADMIN SHORTCUTS IN THE SAME ROW (EXACT VINILLIA STYLE) */}
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch">
+        {/* 5 Best-Selling Products: takes flex-1 */}
+        <div className="flex-1 min-w-0">
+          {(() => {
+            const activeBestProducts = topBestSellingProducts.filter(
+              (p) => (p.calculatedSales || 0) > 0
+            );
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
-            {topBestSellingProducts.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => setSelectedCityProduct(product)}
-                className="bg-white border border-[#E9DCD5] rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center relative hover:shadow-md hover:border-[#6d381e]/50 transition-all text-center group cursor-pointer"
-                title={`Cliquer pour voir la répartition par ville (${product.name})`}
-              >
-                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-amber-50 flex items-center justify-center">
-                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                </div>
-
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-2xs group-hover:scale-105 transition-transform mb-1.5 bg-[#FAF7F2] shrink-0">
-                  <Image
-                    src={product.image || "/images/products/prod-tapis.jpg"}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-
-                <p className="font-serif font-bold text-xs text-[#1F2937] leading-tight line-clamp-1 group-hover:text-[#6d381e] transition-colors">
-                  {product.name}
-                </p>
-
-                <div className="mt-1 flex flex-col items-center gap-0.5">
-                  <p className="text-[10px] text-neutral-500 font-medium">
-                    {product.calculatedSales} commandes
+            if (activeBestProducts.length === 0) {
+              return (
+                <div className="bg-[#FAF7F2] border border-[#E9DCD5] rounded-3xl p-6 flex flex-col items-center justify-center text-center h-full w-full space-y-2.5 min-h-[195px]">
+                  <div className="w-10 h-10 rounded-full bg-[#6d381e]/10 text-[#6d381e] flex items-center justify-center">
+                    <Award className="w-5 h-5 text-[#6d381e]" />
+                  </div>
+                  <p className="font-serif font-bold text-sm sm:text-base text-[#1F2937]">
+                    Aucun produit best
                   </p>
-                  <span className="text-[10.5px] font-extrabold text-[#ba4e1a] bg-[#FAF7F2] px-2 py-0.5 rounded-full border border-[#E9DCD5]">
-                    {product.price} DH
-                  </span>
+                  <p className="text-xs text-[#6B7280] max-w-sm leading-relaxed">
+                    Les créations les plus vendues s&apos;afficheront ici automatiquement dès les premières commandes.
+                  </p>
                 </div>
-              </button>
-            ))}
-          </div>
+              );
+            }
+
+            const remainingSlots = 5 - activeBestProducts.length;
+
+            const colSpanClasses: Record<number, string> = {
+              1: "lg:col-span-1",
+              2: "lg:col-span-2",
+              3: "lg:col-span-3",
+              4: "lg:col-span-4",
+            };
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 h-full">
+                {activeBestProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => setSelectedCityProduct(product)}
+                    className="bg-[#FAF7F2] border border-[#E9DCD5] rounded-3xl p-3 sm:p-3.5 flex flex-col items-center justify-center relative hover:shadow-md hover:border-[#6d381e]/40 transition-all duration-200 text-center group cursor-pointer h-full w-full min-h-[195px]"
+                    title={`Cliquer pour voir la répartition par ville (${product.name})`}
+                  >
+                    {/* Tiny star indicator in top-right */}
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#6d381e]/10 flex items-center justify-center">
+                      <Star className="w-3 h-3 text-[#6d381e] fill-[#6d381e]" />
+                    </div>
+
+                    {/* Avatar with circle border */}
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-white shadow-xs group-hover:scale-105 transition-transform mb-1.5 bg-white shrink-0">
+                      <Image
+                        src={product.image || "/images/products/prod-tapis.jpg"}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Name */}
+                    <p
+                      className="font-bold text-xs sm:text-[13px] text-[#1F2937] leading-tight line-clamp-1 group-hover:text-[#6d381e] transition-colors"
+                      title={product.name}
+                    >
+                      {product.name}
+                    </p>
+
+                    {/* Sales & Price */}
+                    <div className="mt-1 flex flex-col items-center gap-0.5">
+                      <p className="text-[11px] text-[#6B7280] font-medium">
+                        {product.calculatedSales} {product.calculatedSales === 1 ? "Vente" : "Ventes"}
+                      </p>
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-[#6d381e] bg-white px-2.5 py-0.5 rounded-full border border-[#E9DCD5] shadow-2xs group-hover:border-[#6d381e]/30 transition-colors">
+                        {product.price} DH
+                      </span>
+                    </div>
+                  </button>
+                ))}
+
+                {remainingSlots > 0 && (
+                  <div
+                    className={`bg-[#FAF7F2] border border-[#E9DCD5] rounded-3xl p-4 flex flex-col items-center justify-center text-center h-full w-full space-y-1.5 min-h-[195px] ${
+                      colSpanClasses[remainingSlots] || ""
+                    }`}
+                  >
+                    <Award className="w-4 h-4 text-[#6d381e]/40" />
+                    <p className="font-serif font-bold text-xs sm:text-sm text-[#1F2937]">
+                      Aucun autre produit best
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
-        {/* Right: 4 Shortcuts Card in Walnut Wood Theme (#6d381e) */}
-        <div className="w-full lg:w-[260px] xl:w-[280px] shrink-0 bg-[#6d381e] rounded-3xl p-3 text-white flex flex-col justify-between shadow-sm border border-[#6d381e]/30 gap-1.5 min-h-[195px]">
-          {/* 1. Commandes */}
-          <Link
-            href="/admin/commandes"
-            className="flex items-center justify-between p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#FAF7F2]" />
+        {/* 4 Essential Admin Shortcuts with reduced padding + 4th TikTok Reels button */}
+        <div className="w-full lg:w-[250px] xl:w-[270px] shrink-0 bg-[#6d381e] rounded-3xl p-2.5 sm:p-3 text-white flex flex-col justify-center shadow-md border border-[#6d381e]/30">
+          <div className="flex flex-col justify-between h-full gap-1.5">
+            {/* 1. Commandes */}
+            <Link
+              href="/admin/commandes"
+              className="flex items-center justify-between p-1.5 sm:p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer flex-1"
+              title="Consulter et gérer les commandes clients"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6.5 h-6.5 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <ShoppingBag className="w-3.5 h-3.5 text-[#FAF7F2]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-white block leading-tight truncate">
+                    Commandes
+                  </span>
+                  <span className="text-[10px] text-white/70 block leading-tight truncate">
+                    {pendingOrders > 0 ? `${pendingOrders} en attente` : "Toutes traitées"}
+                  </span>
+                </div>
               </div>
-              <div className="min-w-0 text-left">
-                <span className="font-bold text-xs text-white block leading-tight truncate">
-                  Commandes
+              {pendingOrders > 0 ? (
+                <span className="text-[10px] font-extrabold bg-[#ba4e1a] text-white px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                  {pendingOrders}
                 </span>
-                <span className="text-[10px] text-white/70 block leading-tight truncate">
-                  {pendingOrders > 0 ? `${pendingOrders} en attente` : "Toutes traitées"}
-                </span>
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              )}
+            </Link>
+
+            {/* 2. Produits */}
+            <Link
+              href="/admin/produits"
+              className="flex items-center justify-between p-1.5 sm:p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer flex-1"
+              title="Gérer le catalogue des créations et l'inventaire"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6.5 h-6.5 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Package className="w-3.5 h-3.5 text-[#FAF7F2]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-white block leading-tight truncate">
+                    Produits
+                  </span>
+                  <span className="text-[10px] text-white/70 block leading-tight truncate">
+                    {inStockCount} en stock
+                  </span>
+                </div>
               </div>
-            </div>
-            {pendingOrders > 0 ? (
-              <span className="text-[10px] font-extrabold bg-[#ba4e1a] text-white px-2 py-0.5 rounded-full shadow-2xs shrink-0">
-                {pendingOrders}
+              <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full shrink-0">
+                {products.length}
               </span>
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            )}
-          </Link>
+            </Link>
 
-          {/* 2. Produits */}
-          <Link
-            href="/admin/produits"
-            className="flex items-center justify-between p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Package className="w-3.5 h-3.5 text-[#FAF7F2]" />
+            {/* 3. Avis Clients */}
+            <Link
+              href="/admin/commentaires"
+              className="flex items-center justify-between p-1.5 sm:p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer flex-1"
+              title="Consulter les avis clients"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6.5 h-6.5 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Star className="w-3.5 h-3.5 text-[#FAF7F2]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-white block leading-tight truncate">
+                    Avis Clients
+                  </span>
+                  <span className="text-[10px] text-white/70 block leading-tight truncate">
+                    {INITIAL_ADMIN_REVIEWS.length} avis reçus
+                  </span>
+                </div>
               </div>
-              <div className="min-w-0 text-left">
-                <span className="font-bold text-xs text-white block leading-tight truncate">
-                  Produits
-                </span>
-                <span className="text-[10px] text-white/70 block leading-tight truncate">
-                  {inStockCount} en stock
-                </span>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full shrink-0">
-              {products.length}
-            </span>
-          </Link>
+              <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full shrink-0">
+                4.9 ★
+              </span>
+            </Link>
 
-          {/* 3. Avis Clients */}
-          <Link
-            href="/admin/commentaires"
-            className="flex items-center justify-between p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Star className="w-3.5 h-3.5 text-[#FAF7F2]" />
+            {/* 4. Vidéos TikTok & Reels */}
+            <Link
+              href="/admin/videos"
+              className="flex items-center justify-between p-1.5 sm:p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer flex-1"
+              title="Ajouter et gérer les vidéos TikTok"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6.5 h-6.5 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Video className="w-3.5 h-3.5 text-[#FAF7F2]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-white block leading-tight truncate">
+                    Vidéos & Reels
+                  </span>
+                  <span className="text-[10px] text-white/70 block leading-tight truncate">
+                    Flux TikTok Atelier
+                  </span>
+                </div>
               </div>
-              <div className="min-w-0 text-left">
-                <span className="font-bold text-xs text-white block leading-tight truncate">
-                  Avis Clients
-                </span>
-                <span className="text-[10px] text-white/70 block leading-tight truncate">
-                  {INITIAL_ADMIN_REVIEWS.length} avis reçus
-                </span>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full shrink-0">
-              4.9 ★
-            </span>
-          </Link>
-
-          {/* 4. Vidéos TikTok & Reels */}
-          <Link
-            href="/admin/videos"
-            className="flex items-center justify-between p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-white/15 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Video className="w-3.5 h-3.5 text-[#FAF7F2]" />
-              </div>
-              <div className="min-w-0 text-left">
-                <span className="font-bold text-xs text-white block leading-tight truncate">
-                  Vidéos & Reels
-                </span>
-                <span className="text-[10px] text-white/70 block leading-tight truncate">
-                  Flux TikTok Atelier
-                </span>
-              </div>
-            </div>
-            <span className="text-[9.5px] font-extrabold bg-[#ba4e1a] text-white px-2 py-0.5 rounded-full shadow-2xs shrink-0 flex items-center gap-0.5">
-              + Ajouter
-            </span>
-          </Link>
+              <span className="text-[9.5px] font-extrabold bg-[#ba4e1a] text-white px-2 py-0.5 rounded-full shadow-2xs shrink-0 flex items-center gap-0.5">
+                + Ajouter
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
 
