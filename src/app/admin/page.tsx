@@ -584,7 +584,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 3. ROW 2: BEST SELLERS (5 PIECES) + 4 ADMIN SHORTCUTS */}
-      <div className="flex flex-col xl:flex-row items-stretch gap-4 sm:gap-5">
+      <div className="flex flex-col lg:flex-row items-stretch gap-4 sm:gap-5">
         {/* Left: Top Best-Selling Products from the boutique */}
         <div className="flex-1 min-w-0 bg-[#FAF7F2] border border-[#E9DCD5] rounded-3xl p-4 sm:p-5 flex flex-col justify-between shadow-2xs">
           <div className="flex items-center justify-between pb-3 border-b border-[#E9DCD5]/60 mb-3">
@@ -599,13 +599,13 @@ export default function AdminDashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
             {topBestSellingProducts.map((product) => (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => setSelectedCityProduct(product)}
-                className="bg-white border border-[#E9DCD5] rounded-2xl p-3 flex flex-col items-center justify-center relative hover:shadow-md hover:border-[#6d381e]/50 transition-all text-center group cursor-pointer"
+                className="bg-white border border-[#E9DCD5] rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center relative hover:shadow-md hover:border-[#6d381e]/50 transition-all text-center group cursor-pointer"
                 title={`Cliquer pour voir la répartition par ville (${product.name})`}
               >
                 <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-amber-50 flex items-center justify-center">
@@ -639,7 +639,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Right: 4 Shortcuts Card in Walnut Wood Theme (#6d381e) */}
-        <div className="w-full xl:w-[270px] shrink-0 bg-[#6d381e] rounded-3xl p-3 text-white flex flex-col justify-between shadow-sm border border-[#6d381e]/30 gap-1.5 min-h-[195px]">
+        <div className="w-full lg:w-[260px] xl:w-[280px] shrink-0 bg-[#6d381e] rounded-3xl p-3 text-white flex flex-col justify-between shadow-sm border border-[#6d381e]/30 gap-1.5 min-h-[195px]">
           {/* 1. Commandes */}
           <Link
             href="/admin/commandes"
