@@ -32,6 +32,7 @@ import {
   SlidersHorizontal,
   DollarSign,
   Users,
+  CreditCard,
 } from "lucide-react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { StatCard } from "@/components/admin/StatCard";
@@ -544,43 +545,27 @@ export default function AdminDashboardPage() {
         }}
       />
 
-      {/* 2. STAT CARDS ROW (4 CARDS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* 2. STAT CARDS ROW (4 CARDS) - EXACT VINILLIA ANALYTICS STYLE */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         <StatCard
           label="Commandes Clients"
-          value={orders.length}
-          change="+14.8%"
-          changeType="positive"
+          value={`${orders.length} cde`}
           icon={ShoppingBag}
-          subtext={pendingOrders > 0 ? `${pendingOrders} en attente de traitement` : "Toutes les commandes traitées"}
-          accentVariant="walnut"
         />
         <StatCard
           label="Volume des Ventes"
           value={`${totalRevenue.toLocaleString()} DH`}
-          change="+24.5%"
-          changeType="positive"
-          icon={TrendingUp}
-          subtext="Encaissé à la livraison (Cash on Delivery)"
-          accentVariant="terracotta"
+          icon={CreditCard}
         />
         <StatCard
           label="Catalogue d'Artisanat"
-          value={products.length}
-          change={`${inStockCount} en stock`}
-          changeType="neutral"
+          value={`${products.length} pièces`}
           icon={Package}
-          subtext="Pièces confectionnées à la main"
-          accentVariant="sand"
         />
         <StatCard
           label="Avis & Satisfaction"
           value="4.9 / 5"
-          change="+0.3"
-          changeType="positive"
           icon={Star}
-          subtext={`${INITIAL_ADMIN_REVIEWS.length} témoignages vérifiés`}
-          accentVariant="sage"
         />
       </div>
 
