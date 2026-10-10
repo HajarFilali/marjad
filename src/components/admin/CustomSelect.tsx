@@ -30,7 +30,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder,
   triggerClassName,
   forceDropDirection,
-  filterSelected = false,
+  filterSelected = true,
   allowCustomAdd = false,
   onAddNewOption,
 }) => {
@@ -196,6 +196,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 </button>
               );
             })}
+
+            {displayedOptions.length === 0 && !allowCustomAdd && (
+              <div className="px-3.5 py-2.5 text-xs text-neutral-400 italic text-start">
+                Aucune autre option disponible
+              </div>
+            )}
 
             {allowCustomAdd && (
               <div className="border-t border-[#E9DCD5] bg-[#FAF7F2]/60">
