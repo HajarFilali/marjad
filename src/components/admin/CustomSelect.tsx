@@ -20,6 +20,8 @@ interface CustomSelectProps {
   filterSelected?: boolean;
   allowCustomAdd?: boolean;
   onAddNewOption?: (newVal: string) => void;
+  actionOptionLabel?: string;
+  onActionOptionClick?: () => void;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -33,6 +35,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   filterSelected = true,
   allowCustomAdd = false,
   onAddNewOption,
+  actionOptionLabel,
+  onActionOptionClick,
 }) => {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
@@ -197,9 +201,25 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               );
             })}
 
-            {displayedOptions.length === 0 && !allowCustomAdd && (
+            {displayedOptions.length === 0 && !allowCustomAdd && !actionOptionLabel && (
               <div className="px-3.5 py-2.5 text-xs text-neutral-400 italic text-start">
                 Aucune autre option disponible
+              </div>
+            )}
+
+            {actionOptionLabel && onActionOptionClick && (
+              <div className="border-t border-[#E9DCD5] bg-white sticky bottom-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onActionOptionClick();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-bold text-start text-[#ba4e1a] hover:bg-[#FAF7F2] hover:text-[#6d381e] transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0 text-[#ba4e1a]" />
+                  <span className="flex-1 text-start">{actionOptionLabel}</span>
+                </button>
               </div>
             )}
 

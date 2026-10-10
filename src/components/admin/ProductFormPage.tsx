@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AdminProduct,
   AdminCategory,
@@ -18,21 +18,11 @@ import {
   Package,
   Layers,
   Image as ImageIcon,
-  CheckCircle2,
   UploadCloud,
-  FileImage,
-  Plus,
   Trash2,
-  ArrowLeft,
   Save,
-  Sparkles,
-  MapPin,
   Tag,
-  ShoppingBag,
-  Star,
   Info,
-  DollarSign,
-  X,
 } from "lucide-react";
 
 interface ProductFormPageProps {
@@ -45,17 +35,17 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   productId,
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedCatFromQuery = searchParams.get("selectedCat");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [products, setProducts] = useState<AdminProduct[]>(INITIAL_ADMIN_PRODUCTS);
   const [categories, setCategories] = useState<AdminCategory[]>(INITIAL_ADMIN_CATEGORIES);
 
-  // Form states - completely empty by default in create mode
+  // Form states - artisan is fixed to master artisan of the house (no input needed)
   const [name, setName] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
-  const [artisanName, setArtisanName] = useState("");
-  const [artisanCity, setArtisanCity] = useState("");
   const [material, setMaterial] = useState("");
   const [dimensions, setDimensions] = useState("");
   const [technique, setTechnique] = useState("");
@@ -80,15 +70,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const [newAddImageUrl, setNewAddImageUrl] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Inline Category Creation Modal state
-  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatNameAr, setNewCatNameAr] = useState("");
-  const [newCatSlug, setNewCatSlug] = useState("");
-  const [newCatDesc, setNewCatDesc] = useState("");
-  const [newCatImage, setNewCatImage] = useState("/images/categories/cat-tapis.jpg");
-
-  // Load products & categories from localStorage
+  // 1. Load products & categories from localStorage
   useEffect(() => {
     try {
       const storedProds = localStorage.getItem("marjad_admin_products");
@@ -104,41 +86,76 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     } catch {}
   }, []);
 
-  // When edit mode, load product data
+  // 2. Restore draft if returning from category creation page
+  useEffect(() => {
+    try {
+      const draftStr = localStorage.getItem("marjad_product_form_draft");
+      if (draftStr) {
+        const draft = JSON.parse(draftStr);
+        if (draft) {
+          if (draft.name !== undefined) setName(draft.name);
+          if (draft.nameAr !== undefined) setNameAr(draft.nameAr);
+          if (draft.material !== undefined) setMaterial(draft.material);
+          if (draft.dimensions !== undefined) setDimensions(draft.dimensions);
+          if (draft.technique !== undefined) setTechnique(draft.technique);
+          if (draft.finish !== undefined) setFinish(draft.finish);
+          if (draft.description !== undefined) setDescription(draft.description);
+          if (draft.catalogPrice !== undefined) setCatalogPrice(draft.catalogPrice);
+          if (draft.hasPromo !== undefined) setHasPromo(draft.hasPromo);
+          if (draft.promoPrice !== undefined) setPromoPrice(draft.promoPrice);
+          if (draft.selectedDiscountPct !== undefined) setSelectedDiscountPct(draft.selectedDiscountPct);
+          if (draft.stock !== undefined) setStock(draft.stock);
+          if (draft.isFeatured !== undefined) setIsFeatured(draft.isFeatured);
+          if (draft.isBestSeller !== undefined) setIsBestSeller(draft.isBestSeller);
+          if (draft.isNewArrival !== undefined) setIsNewArrival(draft.isNewArrival);
+          if (draft.image !== undefined) setImage(draft.image);
+          if (draft.additionalImages !== undefined) setAdditionalImages(draft.additionalImages);
+          if (draft.categorySlug) setCategorySlug(draft.categorySlug);
+        }
+        localStorage.removeItem("marjad_product_form_draft");
+      }
+
+      if (selectedCatFromQuery) {
+        setCategorySlug(selectedCatFromQuery);
+      }
+    } catch {}
+  }, [selectedCatFromQuery]);
+
+  // 3. When in edit mode, load product data (if no draft was restored)
   useEffect(() => {
     if (mode === "edit" && productId) {
       const p = products.find((it) => String(it.id) === String(productId));
       if (p) {
-        setName(p.name || "");
-        setNameAr(p.nameAr || "");
-        setCategorySlug(p.categorySlug || "");
-        setArtisanName(p.artisanName || "");
-        setArtisanCity(p.artisanCity || "");
-        setMaterial(p.material || "");
-        setDimensions(p.dimensions || "");
-        setTechnique((p as any).technique || "");
-        setFinish(p.finish || "");
-        setIsFeatured(p.isFeatured ?? true);
-        setIsBestSeller(p.isBestSeller ?? false);
-        setDescription(p.description || p.shortDescription || "");
+        setName((prev) => (prev ? prev : p.name || ""));
+        setNameAr((prev) => (prev ? prev : p.nameAr || ""));
+        setCategorySlug((prev) => (prev ? prev : p.categorySlug || ""));
+        setMaterial((prev) => (prev ? prev : p.material || ""));
+        setDimensions((prev) => (prev ? prev : p.dimensions || ""));
+        setTechnique((prev) => (prev ? prev : (p as any).technique || ""));
+        setFinish((prev) => (prev ? prev : p.finish || ""));
+        setDescription((prev) => (prev ? prev : p.description || p.shortDescription || ""));
 
         // Pricing restoration:
-        if (p.oldPrice && p.oldPrice > p.price) {
-          setHasPromo(true);
-          setCatalogPrice(p.oldPrice);
-          setPromoPrice(p.price);
-          const pct = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
-          setSelectedDiscountPct(pct);
-        } else {
-          setHasPromo(false);
-          setCatalogPrice(typeof p.price === "number" ? p.price : "");
-          setPromoPrice("");
-          setSelectedDiscountPct(null);
+        if (catalogPrice === "" && promoPrice === "") {
+          if (p.oldPrice && p.oldPrice > p.price) {
+            setHasPromo(true);
+            setCatalogPrice(p.oldPrice);
+            setPromoPrice(p.price);
+            const pct = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
+            setSelectedDiscountPct(pct);
+          } else {
+            setHasPromo(false);
+            setCatalogPrice(typeof p.price === "number" ? p.price : "");
+            setPromoPrice("");
+            setSelectedDiscountPct(null);
+          }
         }
 
-        setStock(p.stock !== undefined ? p.stock : "");
-        setImage(p.image || "");
-        setAdditionalImages(p.images?.filter((img) => img !== p.image) || []);
+        if (stock === "") setStock(p.stock !== undefined ? p.stock : "");
+        if (!image) setImage(p.image || "");
+        if (additionalImages.length === 0) {
+          setAdditionalImages(p.images?.filter((img) => img !== p.image) || []);
+        }
       }
     }
   }, [mode, productId, products]);
@@ -153,6 +170,39 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const selectedCategoryName = useMemo(() => {
     return categories.find((c) => c.slug === categorySlug)?.name || "";
   }, [categories, categorySlug]);
+
+  // Navigate to category creation page, saving the product form state to draft
+  const handleGoToAddCategory = () => {
+    const draft = {
+      name,
+      nameAr,
+      categorySlug,
+      material,
+      dimensions,
+      technique,
+      finish,
+      description,
+      catalogPrice,
+      hasPromo,
+      promoPrice,
+      selectedDiscountPct,
+      stock,
+      isFeatured,
+      isBestSeller,
+      isNewArrival,
+      image,
+      additionalImages,
+      mode,
+      productId,
+    };
+    try {
+      localStorage.setItem("marjad_product_form_draft", JSON.stringify(draft));
+    } catch {}
+
+    const currentPath =
+      typeof window !== "undefined" ? window.location.pathname : "/admin/produits/new";
+    router.push(`/admin/categories/new?returnUrl=${encodeURIComponent(currentPath)}`);
+  };
 
   // Handle Discount Remise Button Click (-10%, -15%, etc.)
   const applyDiscount = (pct: number) => {
@@ -187,7 +237,6 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     if (checked) {
       const base = typeof catalogPrice === "number" ? catalogPrice : Number(catalogPrice) || 0;
       if (base > 0 && promoPrice === "") {
-        // By default compute -20% or let user pick from the buttons
         const calculated = Math.round(base * 0.8);
         setPromoPrice(calculated);
         setSelectedDiscountPct(20);
@@ -222,52 +271,6 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  // Handle Creating New Category from Modal (keeps product form state safe)
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
-
-    const generatedSlug =
-      newCatSlug.trim() ||
-      newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-
-    const newCategory: AdminCategory = {
-      id: `cat-${Date.now()}`,
-      name: newCatName.trim(),
-      nameAr: newCatNameAr.trim() || undefined,
-      slug: generatedSlug,
-      description:
-        newCatDesc.trim() ||
-        `Collection d'artisanat marocain d'exception : ${newCatName.trim()}.`,
-      image: newCatImage.trim() || "/images/categories/cat-tapis.jpg",
-      itemCount: 0,
-      dateAdded: new Date().toISOString().split("T")[0],
-    };
-
-    const updated = [newCategory, ...categories];
-    setCategories(updated);
-    try {
-      localStorage.setItem("marjad_admin_categories", JSON.stringify(updated));
-    } catch {}
-
-    addAdminNotification({
-      title: "Nouvelle Collection Créée",
-      desc: `La collection "${newCategory.name}" a été ajoutée aux métiers d'art MARJAD.`,
-      type: "order",
-    });
-
-    // Auto-select the newly created category in the form!
-    setCategorySlug(generatedSlug);
-    setIsAddCategoryModalOpen(false);
-
-    // Reset modal form
-    setNewCatName("");
-    setNewCatNameAr("");
-    setNewCatSlug("");
-    setNewCatDesc("");
-    setNewCatImage("/images/categories/cat-tapis.jpg");
   };
 
   // Live Boutique preview product model
@@ -310,14 +313,14 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       description: description.trim(),
       shortDescription: description.trim(),
       artisan: {
-        name: artisanName.trim(),
-        city: artisanCity.trim(),
+        name: "Maâlem Artisan Marjad",
+        city: "Fès Médina",
         craft: selectedCategoryName || "",
       },
       details: {
         material: material.trim(),
         dimensions: dimensions.trim(),
-        origin: artisanCity.trim(),
+        origin: "Fès, Maroc",
         technique: technique.trim(),
       },
       tags: selectedCategoryName ? [selectedCategoryName] : [],
@@ -338,8 +341,6 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     image,
     additionalImages,
     description,
-    artisanName,
-    artisanCity,
     material,
     dimensions,
     technique,
@@ -376,8 +377,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               oldPrice: finalOldPrice,
               stock: finalStock,
               status: stockStatus,
-              artisanName: artisanName.trim(),
-              artisanCity: artisanCity.trim(),
+              artisanName: "Maâlem Artisan Marjad",
+              artisanCity: "Fès Médina",
               material: material.trim(),
               dimensions: dimensions.trim(),
               finish: finish.trim(),
@@ -420,8 +421,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         images: [resolvedImage, ...additionalImages],
         shortDescription: description.trim().slice(0, 100),
         description: description.trim(),
-        artisanName: artisanName.trim() || "Maâlem Artisan Marjad",
-        artisanCity: artisanCity.trim() || "Fès Médina",
+        artisanName: "Maâlem Artisan Marjad",
+        artisanCity: "Fès Médina",
         material: material.trim(),
         dimensions: dimensions.trim(),
         finish: finish.trim(),
@@ -504,42 +505,21 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                 />
               </div>
 
-              {/* Collection / Catégorie avec bouton inline pour ajouter une catégorie */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-xs text-[#1F2937]">
-                    Collection &amp; Métier d&apos;Art *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCategoryModalOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ba4e1a] hover:text-[#6d381e] transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Ajouter une catégorie</span>
-                  </button>
-                </div>
+              {/* Catégorie: liste déroulante avec option '+ Ajouter une catégorie' à la fin */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-xs text-[#1F2937]">
+                  Catégorie de la création *
+                </label>
                 <CustomSelect
                   value={categorySlug}
                   onChange={(val) => setCategorySlug(val)}
                   options={categoryOptions}
                   icon={Layers}
                   placeholder="Sélectionner une catégorie..."
+                  actionOptionLabel="+ Ajouter une catégorie"
+                  onActionOptionClick={handleGoToAddCategory}
                   triggerClassName="w-full bg-white border border-[#E9DCD5] rounded-xl text-xs py-2.5 text-[#1F2937]"
                 />
-                <div className="flex items-center justify-between pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCategoryModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ba4e1a] hover:text-[#6d381e] bg-[#FAF7F2] hover:bg-[#FAF7F2]/80 border border-[#E9DCD5] rounded-xl px-3 py-1.5 transition cursor-pointer shadow-2xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Créer &amp; ajouter une nouvelle catégorie</span>
-                  </button>
-                  <span className="text-[11px] text-[#6B7280]">
-                    {categories.length} catégories disponibles
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -842,41 +822,13 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               </div>
             </div>
 
-            {/* Section 5: Artisanat, Matières & Fiche Technique */}
+            {/* Section 5: Matières, Dimensions & Fiche Technique (Artisan is fixed to master artisan) */}
             <div className="space-y-4 pt-1">
               <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
                 <Info className="w-4 h-4 text-[#ba4e1a]" />
                 <h2 className="font-serif font-bold text-base text-[#1F2937]">
-                  Artisanat, Dimensions &amp; Fiche Technique
+                  Matières, Dimensions &amp; Fiche Technique
                 </h2>
-              </div>
-
-              {/* Artisan & Ville */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                    Maâlem / Artisan / Coopérative
-                  </label>
-                  <input
-                    type="text"
-                    value={artisanName}
-                    onChange={(e) => setArtisanName(e.target.value)}
-                    placeholder="Ex: Maâlem Idrissi, Coopérative Tithrit..."
-                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                    Ville ou Région d&apos;Origine
-                  </label>
-                  <input
-                    type="text"
-                    value={artisanCity}
-                    onChange={(e) => setArtisanCity(e.target.value)}
-                    placeholder="Ex: Fès Médina, Marrakech, Taza, Essaouira..."
-                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
-                  />
-                </div>
               </div>
 
               {/* Dimensions & Matières */}
@@ -958,7 +910,6 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
             <div
               className="w-[285px] mx-auto select-none"
               onClick={(e) => {
-                // Prevent navigation when clicking card in admin preview
                 const target = e.target as HTMLElement;
                 if (target.closest("a") || target.closest("button")) {
                   e.preventDefault();
@@ -995,133 +946,6 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
           </div>
         </div>
       </form>
-
-      {/* Modal Inline Création de Catégorie sans quitter le formulaire */}
-      {isAddCategoryModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setIsAddCategoryModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-[#E9DCD5] shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between pb-3 border-b border-[#EDE9E6]">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[#ba4e1a]" />
-                  <h3 className="font-serif font-bold text-lg text-[#1F2937]">
-                    Créer une Nouvelle Catégorie
-                  </h3>
-                </div>
-                <p className="text-xs text-[#6B7280]">
-                  Elle sera enregistrée, disponible dans la page Catégories et sélectionnée automatiquement pour ce produit.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddCategoryModalOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-500 hover:text-stone-800 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCategory} className="space-y-4">
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1">
-                  Nom de la collection (Français) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={newCatName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNewCatName(val);
-                    if (!newCatSlug || newCatSlug === newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-")) {
-                      setNewCatSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
-                    }
-                  }}
-                  placeholder="Ex: Tapis & Tissages de l'Atlas"
-                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-medium transition"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1">
-                  Nom en Arabe (Calligraphie)
-                </label>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={newCatNameAr}
-                  onChange={(e) => setNewCatNameAr(e.target.value)}
-                  placeholder="مثال: زرابي ومنسوجات الأطلس"
-                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-arabic outline-none focus:border-[#6d381e] transition"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1">
-                  Slug URL (Identifiant unique)
-                </label>
-                <input
-                  type="text"
-                  value={newCatSlug}
-                  onChange={(e) => setNewCatSlug(e.target.value)}
-                  placeholder="ex: tapis-tissages-atlas"
-                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs font-mono text-[#1F2937] outline-none focus:border-[#6d381e] transition"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1">
-                  Description &amp; Récit du métier d&apos;art
-                </label>
-                <textarea
-                  rows={3}
-                  value={newCatDesc}
-                  onChange={(e) => setNewCatDesc(e.target.value)}
-                  placeholder="Récit authentique, techniques traditionnelles et matières..."
-                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] resize-none transition"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1">
-                  Image de couverture (URL)
-                </label>
-                <input
-                  type="text"
-                  value={newCatImage}
-                  onChange={(e) => setNewCatImage(e.target.value)}
-                  placeholder="/images/categories/cat-tapis.jpg ou https://..."
-                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] font-mono outline-none focus:border-[#6d381e] transition"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EDE9E6]">
-                <button
-                  type="button"
-                  onClick={() => setIsAddCategoryModalOpen(false)}
-                  className="px-4 py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-full bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Ajouter la catégorie</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
