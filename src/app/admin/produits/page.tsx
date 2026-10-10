@@ -283,13 +283,13 @@ function AdminProductsContent() {
                       : "bg-white border-[#EDE9E6] shadow-2xs hover:shadow-md hover:border-[#6d381e]/40"
                   }`}
                 >
-                  {/* Image Pod - Full Width */}
-                  <div className="relative aspect-[4/4.15] w-full bg-[#FAF7F2] border-b border-[#EDE9E6] overflow-hidden flex items-center justify-center">
+                  {/* Image Pod - Refined compact height */}
+                  <div className="relative h-44 sm:h-48 w-full bg-[#FAF7F2] border-b border-[#EDE9E6] overflow-hidden flex items-center justify-center">
                     <Image
                       src={p.image}
                       alt={p.name}
                       fill
-                      className="object-contain p-3.5 group-hover:scale-105 transition-transform duration-500"
+                      className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                     />
 
                     {/* Badges Top-Right (Stock + Promo stacked) */}
