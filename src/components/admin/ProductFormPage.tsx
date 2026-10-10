@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AdminProduct,
+  AdminCategory,
   INITIAL_ADMIN_PRODUCTS,
   INITIAL_ADMIN_CATEGORIES,
   addAdminNotification,
@@ -31,6 +32,7 @@ import {
   Star,
   Info,
   DollarSign,
+  X,
 } from "lucide-react";
 
 interface ProductFormPageProps {
@@ -46,7 +48,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [products, setProducts] = useState<AdminProduct[]>(INITIAL_ADMIN_PRODUCTS);
-  const [categories, setCategories] = useState(INITIAL_ADMIN_CATEGORIES);
+  const [categories, setCategories] = useState<AdminCategory[]>(INITIAL_ADMIN_CATEGORIES);
 
   // Form states - completely empty by default in create mode
   const [name, setName] = useState("");
@@ -56,15 +58,35 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const [artisanCity, setArtisanCity] = useState("");
   const [material, setMaterial] = useState("");
   const [dimensions, setDimensions] = useState("");
+  const [technique, setTechnique] = useState("");
+  const [finish, setFinish] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number | "">("");
+
+  // Pricing & Promotion states (matching exact screenshot UI & logic)
+  const [catalogPrice, setCatalogPrice] = useState<number | "">("");
   const [hasPromo, setHasPromo] = useState(false);
-  const [oldPrice, setOldPrice] = useState<number | "">("");
+  const [promoPrice, setPromoPrice] = useState<number | "">("");
+  const [selectedDiscountPct, setSelectedDiscountPct] = useState<number | null>(null);
+
+  // Stock & Badges
   const [stock, setStock] = useState<number | "">("");
+  const [isFeatured, setIsFeatured] = useState(true);
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [isNewArrival, setIsNewArrival] = useState(true);
+
+  // Images
   const [image, setImage] = useState("");
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [newAddImageUrl, setNewAddImageUrl] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Inline Category Creation Modal state
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatNameAr, setNewCatNameAr] = useState("");
+  const [newCatSlug, setNewCatSlug] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+  const [newCatImage, setNewCatImage] = useState("/images/categories/cat-tapis.jpg");
 
   // Load products & categories from localStorage
   useEffect(() => {
@@ -94,15 +116,26 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         setArtisanCity(p.artisanCity || "");
         setMaterial(p.material || "");
         setDimensions(p.dimensions || "");
+        setTechnique((p as any).technique || "");
+        setFinish(p.finish || "");
+        setIsFeatured(p.isFeatured ?? true);
+        setIsBestSeller(p.isBestSeller ?? false);
         setDescription(p.description || p.shortDescription || "");
-        setPrice(typeof p.price === "number" ? p.price : "");
+
+        // Pricing restoration:
         if (p.oldPrice && p.oldPrice > p.price) {
           setHasPromo(true);
-          setOldPrice(p.oldPrice);
+          setCatalogPrice(p.oldPrice);
+          setPromoPrice(p.price);
+          const pct = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
+          setSelectedDiscountPct(pct);
         } else {
           setHasPromo(false);
-          setOldPrice("");
+          setCatalogPrice(typeof p.price === "number" ? p.price : "");
+          setPromoPrice("");
+          setSelectedDiscountPct(null);
         }
+
         setStock(p.stock !== undefined ? p.stock : "");
         setImage(p.image || "");
         setAdditionalImages(p.images?.filter((img) => img !== p.image) || []);
@@ -121,6 +154,51 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     return categories.find((c) => c.slug === categorySlug)?.name || "";
   }, [categories, categorySlug]);
 
+  // Handle Discount Remise Button Click (-10%, -15%, etc.)
+  const applyDiscount = (pct: number) => {
+    if (!hasPromo) return;
+    const base = typeof catalogPrice === "number" ? catalogPrice : Number(catalogPrice) || 0;
+    if (base > 0) {
+      const calculated = Math.round(base * (1 - pct / 100));
+      setPromoPrice(calculated);
+      setSelectedDiscountPct(pct);
+    }
+  };
+
+  // Handle Catalog Price change with reactive discount updating
+  const handleCatalogPriceChange = (val: string) => {
+    if (val === "") {
+      setCatalogPrice("");
+      if (hasPromo && selectedDiscountPct) {
+        setPromoPrice("");
+      }
+      return;
+    }
+    const num = Number(val);
+    setCatalogPrice(num);
+    if (hasPromo && selectedDiscountPct) {
+      setPromoPrice(Math.round(num * (1 - selectedDiscountPct / 100)));
+    }
+  };
+
+  // Handle Promo Toggle
+  const handleTogglePromo = (checked: boolean) => {
+    setHasPromo(checked);
+    if (checked) {
+      const base = typeof catalogPrice === "number" ? catalogPrice : Number(catalogPrice) || 0;
+      if (base > 0 && promoPrice === "") {
+        // By default compute -20% or let user pick from the buttons
+        const calculated = Math.round(base * 0.8);
+        setPromoPrice(calculated);
+        setSelectedDiscountPct(20);
+      }
+    } else {
+      setPromoPrice("");
+      setSelectedDiscountPct(null);
+    }
+  };
+
+  // Handle adding secondary images
   const handleAddImage = () => {
     if (newAddImageUrl.trim() && additionalImages.length < 3) {
       setAdditionalImages([...additionalImages, newAddImageUrl.trim()]);
@@ -146,13 +224,62 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     }
   };
 
+  // Handle Creating New Category from Modal (keeps product form state safe)
+  const handleCreateCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+
+    const generatedSlug =
+      newCatSlug.trim() ||
+      newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+    const newCategory: AdminCategory = {
+      id: `cat-${Date.now()}`,
+      name: newCatName.trim(),
+      nameAr: newCatNameAr.trim() || undefined,
+      slug: generatedSlug,
+      description:
+        newCatDesc.trim() ||
+        `Collection d'artisanat marocain d'exception : ${newCatName.trim()}.`,
+      image: newCatImage.trim() || "/images/categories/cat-tapis.jpg",
+      itemCount: 0,
+      dateAdded: new Date().toISOString().split("T")[0],
+    };
+
+    const updated = [newCategory, ...categories];
+    setCategories(updated);
+    try {
+      localStorage.setItem("marjad_admin_categories", JSON.stringify(updated));
+    } catch {}
+
+    addAdminNotification({
+      title: "Nouvelle Collection Créée",
+      desc: `La collection "${newCategory.name}" a été ajoutée aux métiers d'art MARJAD.`,
+      type: "order",
+    });
+
+    // Auto-select the newly created category in the form!
+    setCategorySlug(generatedSlug);
+    setIsAddCategoryModalOpen(false);
+
+    // Reset modal form
+    setNewCatName("");
+    setNewCatNameAr("");
+    setNewCatSlug("");
+    setNewCatDesc("");
+    setNewCatImage("/images/categories/cat-tapis.jpg");
+  };
+
   // Live Boutique preview product model
   const previewProduct: Product = useMemo(() => {
-    const numPrice = typeof price === "number" ? price : 0;
-    const numOldPrice = typeof oldPrice === "number" ? oldPrice : undefined;
+    const numCatalog = typeof catalogPrice === "number" ? catalogPrice : Number(catalogPrice) || 0;
+    const numPromo = typeof promoPrice === "number" ? promoPrice : Number(promoPrice) || 0;
+
+    const sellingPrice = hasPromo && numPromo > 0 ? numPromo : numCatalog;
+    const crossedPrice = hasPromo && numCatalog > sellingPrice ? numCatalog : undefined;
     const discountPercent =
-      hasPromo && numOldPrice && numOldPrice > numPrice
-        ? Math.round(((numOldPrice - numPrice) / numOldPrice) * 100)
+      hasPromo && crossedPrice && crossedPrice > sellingPrice
+        ? Math.round(((crossedPrice - sellingPrice) / crossedPrice) * 100)
         : undefined;
 
     const mainImg = image.trim();
@@ -169,15 +296,16 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       nameAr: nameAr.trim() || undefined,
       category: selectedCategoryName || "",
       categorySlug: categorySlug || "",
-      price: numPrice,
-      originalPrice: hasPromo && numOldPrice ? numOldPrice : undefined,
+      price: sellingPrice,
+      originalPrice: crossedPrice,
       discountPercent,
       rating: 5.0,
       reviewCount: 0,
       inStock: stock === "" || Number(stock) > 0,
-      stockCount: typeof stock === "number" ? stock : 0,
-      isFeatured: true,
-      isBestSeller: false,
+      stockCount: typeof stock === "number" ? stock : Number(stock) || 0,
+      isFeatured: isFeatured,
+      isBestSeller: isBestSeller,
+      isNewArrival: isNewArrival,
       images: imgs,
       description: description.trim(),
       shortDescription: description.trim(),
@@ -190,6 +318,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         material: material.trim(),
         dimensions: dimensions.trim(),
         origin: artisanCity.trim(),
+        technique: technique.trim(),
       },
       tags: selectedCategoryName ? [selectedCategoryName] : [],
     };
@@ -199,10 +328,13 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     nameAr,
     selectedCategoryName,
     categorySlug,
-    price,
+    catalogPrice,
+    promoPrice,
     hasPromo,
-    oldPrice,
     stock,
+    isFeatured,
+    isBestSeller,
+    isNewArrival,
     image,
     additionalImages,
     description,
@@ -210,6 +342,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     artisanCity,
     material,
     dimensions,
+    technique,
   ]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -217,8 +350,12 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
     const currentList = products.length > 0 ? products : INITIAL_ADMIN_PRODUCTS;
     const finalStock = typeof stock === "number" ? stock : Number(stock) || 0;
-    const finalPrice = typeof price === "number" ? price : Number(price) || 0;
-    const finalOldPrice = hasPromo && typeof oldPrice === "number" ? oldPrice : undefined;
+    const numCatalog = typeof catalogPrice === "number" ? catalogPrice : Number(catalogPrice) || 0;
+    const numPromo = typeof promoPrice === "number" ? promoPrice : Number(promoPrice) || 0;
+
+    const finalSellingPrice = hasPromo && numPromo > 0 ? numPromo : numCatalog;
+    const finalOldPrice = hasPromo && numCatalog > finalSellingPrice ? numCatalog : undefined;
+
     const resolvedCategorySlug = categorySlug || categories[0]?.slug || "artisanat";
     const resolvedCategoryName = selectedCategoryName || categories[0]?.name || "Artisanat d'Art";
     const resolvedImage = image.trim() || "/decor-honeycomb-calligraphy.webp";
@@ -235,7 +372,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               nameAr: nameAr.trim() || undefined,
               categorySlug: resolvedCategorySlug,
               categoryName: resolvedCategoryName,
-              price: finalPrice,
+              price: finalSellingPrice,
               oldPrice: finalOldPrice,
               stock: finalStock,
               status: stockStatus,
@@ -243,6 +380,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               artisanCity: artisanCity.trim(),
               material: material.trim(),
               dimensions: dimensions.trim(),
+              finish: finish.trim(),
+              technique: technique.trim(),
+              isFeatured,
+              isBestSeller,
               description: description.trim(),
               image: resolvedImage,
               images: [resolvedImage, ...additionalImages],
@@ -260,14 +401,14 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       });
     } else {
       const newId = `prod-${Date.now()}`;
-      const newProduct: AdminProduct = {
+      const newProduct: AdminProduct & { technique?: string } = {
         id: newId,
         name: name.trim(),
         nameAr: nameAr.trim() || undefined,
         slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         categorySlug: resolvedCategorySlug,
         categoryName: resolvedCategoryName,
-        price: finalPrice,
+        price: finalSellingPrice,
         oldPrice: finalOldPrice,
         stock: finalStock,
         status: stockStatus,
@@ -283,7 +424,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         artisanCity: artisanCity.trim() || "Fès Médina",
         material: material.trim(),
         dimensions: dimensions.trim(),
-        isFeatured: true,
+        finish: finish.trim(),
+        technique: technique.trim(),
+        isFeatured,
+        isBestSeller,
       };
 
       const updated = [newProduct, ...currentList];
@@ -306,7 +450,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1500px] w-full mx-auto space-y-6 pb-20">
-      {/* Top Header without bottom border */}
+      {/* Top Header */}
       <div className="space-y-1">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1F2937]">
           {mode === "create" ? "Ajouter une Création d'Atelier" : "Modifier la Pièce d'Artisanat"}
@@ -320,7 +464,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       <form id="product-form" onSubmit={handleSubmit}>
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
           {/* LA PARTIE LEFT: Le formulaire prend toute la largeur restante disponible */}
-          <div className="flex-1 min-w-0 bg-white rounded-3xl p-6 sm:p-8 border border-[#E9DCD5] shadow-xs space-y-6">
+          <div className="flex-1 min-w-0 bg-white rounded-3xl p-6 sm:p-8 border border-[#E9DCD5] shadow-xs space-y-7">
             {/* Section 1: Informations Générales & Identité */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
@@ -341,7 +485,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Tableau Ruche 'سبحان الله وبحمده' ou Tapis Beni Ourain"
-                  className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-medium transition"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-medium transition shadow-2xs"
                 />
               </div>
 
@@ -356,57 +500,184 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   value={nameAr}
                   onChange={(e) => setNameAr(e.target.value)}
                   placeholder="مثال: لوحة خلية النحل 'سبحان الله وبحمده' المذهبة"
-                  className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-arabic font-medium transition"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-arabic font-medium transition shadow-2xs"
                 />
               </div>
 
-              {/* Collection / Catégorie */}
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                  Collection &amp; Métier d&apos;Art *
-                </label>
+              {/* Collection / Catégorie avec bouton inline pour ajouter une catégorie */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-xs text-[#1F2937]">
+                    Collection &amp; Métier d&apos;Art *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddCategoryModalOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ba4e1a] hover:text-[#6d381e] transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Ajouter une catégorie</span>
+                  </button>
+                </div>
                 <CustomSelect
                   value={categorySlug}
                   onChange={(val) => setCategorySlug(val)}
                   options={categoryOptions}
                   icon={Layers}
                   placeholder="Sélectionner une catégorie..."
-                  triggerClassName="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl text-xs py-2.5 text-[#1F2937]"
+                  triggerClassName="w-full bg-white border border-[#E9DCD5] rounded-xl text-xs py-2.5 text-[#1F2937]"
                 />
+                <div className="flex items-center justify-between pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddCategoryModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ba4e1a] hover:text-[#6d381e] bg-[#FAF7F2] hover:bg-[#FAF7F2]/80 border border-[#E9DCD5] rounded-xl px-3 py-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Créer &amp; ajouter une nouvelle catégorie</span>
+                  </button>
+                  <span className="text-[11px] text-[#6B7280]">
+                    {categories.length} catégories disponibles
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Section 2: Tarification & Stock Atelier */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
-                <Tag className="w-4 h-4 text-[#ba4e1a]" />
-                <h2 className="font-serif font-bold text-base text-[#1F2937]">
-                  Tarification &amp; Stock Atelier
-                </h2>
+            {/* Section 2: Tarification & Promotion (Exact Style matching the screenshot) */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E6]">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[#ba4e1a]" />
+                  <h2 className="font-serif font-bold text-base sm:text-lg text-[#1F2937]">
+                    Tarification &amp; Promotion
+                  </h2>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <span className="text-xs font-bold text-[#1F2937]">
+                    Activer une promotion
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={hasPromo}
+                    onChange={(e) => handleTogglePromo(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                  />
+                </label>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Prix de Vente */}
-                <div>
-                  <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                    Prix de Vente (DH) *
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                      placeholder="Ex: 1350"
-                      className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
-                    />
-                    <span className="absolute right-4 text-xs font-bold text-[#ba4e1a]">
-                      DH (TTC)
-                    </span>
+              {/* Layout 2 colonnes comme sur la capture */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start pt-1">
+                {/* Colonne Gauche: Prix Catalogue Initial & Nouveau Prix Promotionnel */}
+                <div className="space-y-4">
+                  {/* Prix Catalogue Initial */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-xs text-[#1F2937]">
+                      Prix Catalogue Initial (DH) *
+                    </label>
+                    <p className="text-[11px] text-[#6B7280]">
+                      Le prix initial avant réduction (qui sera barré en boutique).
+                    </p>
+                    <div className="relative flex items-center pt-0.5">
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        value={catalogPrice}
+                        onChange={(e) => handleCatalogPriceChange(e.target.value)}
+                        placeholder="Ex: 250"
+                        className="w-full bg-white border border-[#E9DCD5] rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-serif font-bold outline-none focus:border-[#6d381e] pr-12 transition shadow-2xs"
+                      />
+                      <span className="absolute right-4 text-xs font-bold text-[#6B7280]">
+                        DH
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Nouveau Prix Promotionnel */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-xs text-[#1F2937]">
+                      Nouveau Prix Promotionnel (DH) {hasPromo ? "*" : ""}
+                    </label>
+                    <p className="text-[11px] text-[#6B7280]">
+                      {hasPromo
+                        ? "Le prix de vente après réduction appliqué aux clients."
+                        : "Désactivé (cochez l'option ci-dessus)."}
+                    </p>
+                    <div className="relative flex items-center pt-0.5">
+                      <input
+                        type="number"
+                        disabled={!hasPromo}
+                        required={hasPromo}
+                        min={1}
+                        value={hasPromo ? promoPrice : ""}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? "" : Number(e.target.value);
+                          setPromoPrice(val);
+                          setSelectedDiscountPct(null);
+                        }}
+                        placeholder={hasPromo ? "Ex: 200" : "Prix promo désactivé"}
+                        className={`w-full border rounded-2xl px-4 py-2.5 text-sm font-serif font-bold outline-none pr-12 transition shadow-2xs ${
+                          !hasPromo
+                            ? "bg-stone-50 border-[#E9DCD5] text-stone-400 placeholder:text-stone-400 placeholder:font-serif placeholder:font-normal cursor-not-allowed"
+                            : "bg-white border-[#E9DCD5] text-[#1F2937] focus:border-[#6d381e]"
+                        }`}
+                      />
+                      <span
+                        className={`absolute right-4 text-xs font-bold ${
+                          !hasPromo ? "text-stone-300" : "text-[#ba4e1a]"
+                        }`}
+                      >
+                        DH
+                      </span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Colonne Droite: Remise rapide en 1 clic */}
+                <div className="bg-[#FAF7F2]/40 rounded-2xl border border-[#E9DCD5] p-4 sm:p-5 space-y-3 shadow-2xs">
+                  <h3 className="font-bold text-xs text-[#1F2937]">
+                    Remise rapide en 1 clic :
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[-10, -15, -20, -25, -30, -35, -50, -60, -70].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        disabled={!hasPromo}
+                        onClick={() => applyDiscount(Math.abs(pct))}
+                        className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
+                          !hasPromo
+                            ? "bg-stone-100 text-stone-300 border border-stone-200/50 cursor-not-allowed"
+                            : selectedDiscountPct === Math.abs(pct)
+                            ? "bg-[#6d381e] text-white border border-[#6d381e] shadow-xs scale-102"
+                            : "bg-white hover:bg-[#6d381e]/10 text-stone-700 hover:text-[#6d381e] border border-[#E9DCD5] shadow-2xs cursor-pointer hover:scale-102"
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] italic text-[#6B7280]">
+                    {!hasPromo
+                      ? 'Cochez "Activer une promotion" pour utiliser les remises.'
+                      : selectedDiscountPct
+                      ? `Remise de -${selectedDiscountPct}% appliquée avec succès.`
+                      : "Cliquez sur une remise pour calculer le prix promotionnel."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Stock & Disponibilité Atelier */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
+                <Package className="w-4 h-4 text-[#ba4e1a]" />
+                <h2 className="font-serif font-bold text-base text-[#1F2937]">
+                  Stock &amp; Visibilité Atelier
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Stock disponible */}
                 <div>
                   <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
@@ -419,56 +690,67 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     value={stock}
                     onChange={(e) => setStock(e.target.value === "" ? "" : Number(e.target.value))}
                     placeholder="Ex: 6"
-                    className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e] shadow-2xs"
                   />
-                  <span className="text-[10px] text-[#6B7280] mt-1 block">
+                  <span className="text-[10px] text-[#6B7280] mt-1.5 block">
                     {stock === "" ? (
                       <span className="text-[#8c827a]">Indiquez la quantité disponible</span>
-                    ) : stock === 0 ? (
-                      <span className="text-red-600 font-bold">⚠️ Pièce en rupture</span>
-                    ) : stock <= 4 ? (
+                    ) : Number(stock) === 0 ? (
+                      <span className="text-red-600 font-bold">⚠️ Pièce en rupture de stock</span>
+                    ) : Number(stock) <= 4 ? (
                       <span className="text-amber-600 font-bold">⚠️ Stock faible (Alerte activée)</span>
                     ) : (
-                      <span className="text-emerald-600 font-bold">✓ Stock optimal</span>
+                      <span className="text-emerald-600 font-bold">✓ Stock optimal ({stock} pièces disponibles)</span>
                     )}
                   </span>
                 </div>
-              </div>
 
-              {/* Promo Switch */}
-              <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E9DCD5]/80 space-y-3">
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={hasPromo}
-                    onChange={(e) => setHasPromo(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
-                  />
-                  <span className="text-xs font-bold text-[#1F2937]">
-                    Appliquer un prix barré (Promotion atelier)
-                  </span>
-                </label>
-
-                {hasPromo && (
-                  <div>
-                    <label className="block font-bold text-xs text-[#6B7280] mb-1">
-                      Ancien Prix Barré (DH)
+                {/* Badges de mise en avant */}
+                <div>
+                  <label className="block font-bold text-xs text-[#1F2937] mb-2">
+                    Visibilité &amp; Distinctions en boutique
+                  </label>
+                  <div className="space-y-2 pt-0.5">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isFeatured}
+                        onChange={(e) => setIsFeatured(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                      />
+                      <span className="text-xs text-[#1F2937] font-medium">
+                        Coup de Cœur Atelier (À la Une sur l&apos;accueil)
+                      </span>
                     </label>
-                    <input
-                      type="number"
-                      min={typeof price === "number" ? price : 1}
-                      value={oldPrice}
-                      onChange={(e) => setOldPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                      placeholder="Ex: 1650"
-                      className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
-                    />
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isBestSeller}
+                        onChange={(e) => setIsBestSeller(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                      />
+                      <span className="text-xs text-[#1F2937] font-medium">
+                        Badge &quot;Best-Seller&quot; (Pièce très convoitée)
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isNewArrival}
+                        onChange={(e) => setIsNewArrival(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                      />
+                      <span className="text-xs text-[#1F2937] font-medium">
+                        Badge &quot;Nouveauté&quot; (Création récente de l&apos;atelier)
+                      </span>
+                    </label>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Section 3: Visuels & Galerie */}
-            <div className="space-y-4 pt-2">
+            {/* Section 4: Visuels & Galerie Studio */}
+            <div className="space-y-4 pt-1">
               <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E6]">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-[#ba4e1a]" />
@@ -493,7 +775,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     value={image}
                     onChange={(e) => setImage(e.target.value)}
                     placeholder="Ex: /decor-honeycomb-calligraphy.webp ou https://..."
-                    className="flex-1 bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e]"
+                    className="flex-1 bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e] shadow-2xs"
                   />
                   <input
                     ref={fileInputRef}
@@ -505,7 +787,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2.5 rounded-xl border border-[#E9DCD5] bg-white hover:bg-[#FAF6F4] text-xs font-bold text-[#6d381e] flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs"
+                    className="px-4 py-2.5 rounded-xl border border-[#E9DCD5] bg-white hover:bg-stone-50 text-xs font-bold text-[#6d381e] flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs"
                     title="Choisir une photo depuis votre appareil"
                   >
                     <UploadCloud className="w-4 h-4 text-[#ba4e1a]" />
@@ -525,13 +807,13 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     value={newAddImageUrl}
                     onChange={(e) => setNewAddImageUrl(e.target.value)}
                     placeholder="https://... ou /images/products/..."
-                    className="flex-1 bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e]"
+                    className="flex-1 bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] shadow-2xs"
                   />
                   <button
                     type="button"
                     onClick={handleAddImage}
                     disabled={!newAddImageUrl.trim() || additionalImages.length >= 3}
-                    className="px-4 py-2.5 bg-[#6d381e] hover:bg-[#542a15] text-white rounded-xl text-xs font-bold transition disabled:opacity-40 cursor-pointer"
+                    className="px-4 py-2.5 bg-[#6d381e] hover:bg-[#542a15] text-white rounded-xl text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
                   >
                     Ajouter
                   </button>
@@ -560,12 +842,12 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               </div>
             </div>
 
-            {/* Section 4: Artisanat & Fiche Technique */}
-            <div className="space-y-4 pt-2">
+            {/* Section 5: Artisanat, Matières & Fiche Technique */}
+            <div className="space-y-4 pt-1">
               <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
                 <Info className="w-4 h-4 text-[#ba4e1a]" />
                 <h2 className="font-serif font-bold text-base text-[#1F2937]">
-                  Artisanat, Dimensions &amp; Récit
+                  Artisanat, Dimensions &amp; Fiche Technique
                 </h2>
               </div>
 
@@ -580,7 +862,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     value={artisanName}
                     onChange={(e) => setArtisanName(e.target.value)}
                     placeholder="Ex: Maâlem Idrissi, Coopérative Tithrit..."
-                    className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
                   />
                 </div>
                 <div>
@@ -591,8 +873,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={artisanCity}
                     onChange={(e) => setArtisanCity(e.target.value)}
-                    placeholder="Ex: Fès Médina, Marrakech, Khenifra, Taza..."
-                    className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
+                    placeholder="Ex: Fès Médina, Marrakech, Taza, Essaouira..."
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
                   />
                 </div>
               </div>
@@ -607,8 +889,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    placeholder="Ex: Bois noble, résine marbrée & Laiton doré..."
-                    className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
+                    placeholder="Ex: 100% Pure Laine d'agneau, Cuivre ciselé..."
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
                   />
                 </div>
                 <div>
@@ -619,8 +901,36 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={dimensions}
                     onChange={(e) => setDimensions(e.target.value)}
-                    placeholder="Ex: 75 cm x 28 cm"
-                    className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
+                    placeholder="Ex: 250 cm x 160 cm, Diamètre 45 cm..."
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Technique & Finition */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
+                    Technique artisanale
+                  </label>
+                  <input
+                    type="text"
+                    value={technique}
+                    onChange={(e) => setTechnique(e.target.value)}
+                    placeholder="Ex: Nœuds berbères faits main, Poinçonnage au maillet..."
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
+                    Finition &amp; Traitement
+                  </label>
+                  <input
+                    type="text"
+                    value={finish}
+                    onChange={(e) => setFinish(e.target.value)}
+                    placeholder="Ex: Huile végétale satinée, Patine à l'ancienne..."
+                    className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
                   />
                 </div>
               </div>
@@ -636,11 +946,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Décrivez l'origine, les symboles géométriques, les heures de travail nécessaires à sa réalisation..."
-                  className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition leading-relaxed resize-none"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition leading-relaxed resize-none shadow-2xs"
                 />
               </div>
             </div>
-
           </div>
 
           {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Dimensions 1:1 + Sticky Actions */}
@@ -686,6 +995,133 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Modal Inline Création de Catégorie sans quitter le formulaire */}
+      {isAddCategoryModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsAddCategoryModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-[#E9DCD5] shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between pb-3 border-b border-[#EDE9E6]">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#ba4e1a]" />
+                  <h3 className="font-serif font-bold text-lg text-[#1F2937]">
+                    Créer une Nouvelle Catégorie
+                  </h3>
+                </div>
+                <p className="text-xs text-[#6B7280]">
+                  Elle sera enregistrée, disponible dans la page Catégories et sélectionnée automatiquement pour ce produit.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddCategoryModalOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-500 hover:text-stone-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} className="space-y-4">
+              <div>
+                <label className="block font-bold text-xs text-[#1F2937] mb-1">
+                  Nom de la collection (Français) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={newCatName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewCatName(val);
+                    if (!newCatSlug || newCatSlug === newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-")) {
+                      setNewCatSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+                    }
+                  }}
+                  placeholder="Ex: Tapis & Tissages de l'Atlas"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-medium transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-xs text-[#1F2937] mb-1">
+                  Nom en Arabe (Calligraphie)
+                </label>
+                <input
+                  type="text"
+                  dir="rtl"
+                  value={newCatNameAr}
+                  onChange={(e) => setNewCatNameAr(e.target.value)}
+                  placeholder="مثال: زرابي ومنسوجات الأطلس"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-arabic outline-none focus:border-[#6d381e] transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-xs text-[#1F2937] mb-1">
+                  Slug URL (Identifiant unique)
+                </label>
+                <input
+                  type="text"
+                  value={newCatSlug}
+                  onChange={(e) => setNewCatSlug(e.target.value)}
+                  placeholder="ex: tapis-tissages-atlas"
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs font-mono text-[#1F2937] outline-none focus:border-[#6d381e] transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-xs text-[#1F2937] mb-1">
+                  Description &amp; Récit du métier d&apos;art
+                </label>
+                <textarea
+                  rows={3}
+                  value={newCatDesc}
+                  onChange={(e) => setNewCatDesc(e.target.value)}
+                  placeholder="Récit authentique, techniques traditionnelles et matières..."
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] resize-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-xs text-[#1F2937] mb-1">
+                  Image de couverture (URL)
+                </label>
+                <input
+                  type="text"
+                  value={newCatImage}
+                  onChange={(e) => setNewCatImage(e.target.value)}
+                  placeholder="/images/categories/cat-tapis.jpg ou https://..."
+                  className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] font-mono outline-none focus:border-[#6d381e] transition"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EDE9E6]">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCategoryModalOpen(false)}
+                  className="px-4 py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-full bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ajouter la catégorie</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
