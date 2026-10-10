@@ -132,6 +132,20 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     setAdditionalImages(additionalImages.filter((_, i) => i !== idx));
   };
 
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const result = uploadEvent.target?.result as string;
+        if (result) {
+          setImage(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Live Boutique preview product model
   const previewProduct: Product = useMemo(() => {
     const numPrice = typeof price === "number" ? price : 0;
@@ -141,38 +155,43 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         ? Math.round(((numOldPrice - numPrice) / numOldPrice) * 100)
         : undefined;
 
+    const mainImg = image.trim();
+    const imgs = mainImg
+      ? [mainImg, ...additionalImages]
+      : additionalImages.length > 0
+      ? additionalImages
+      : [];
+
     return {
       id: productId || "preview-nouvelle-creation",
       slug: name ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "creation-artisanale",
-      name: name.trim() || "Nom de la Création d'Artisanat",
+      name: name.trim(),
       nameAr: nameAr.trim() || undefined,
-      category: selectedCategoryName || "Artisanat d'Art",
-      categorySlug: categorySlug || "artisanat",
+      category: selectedCategoryName || "",
+      categorySlug: categorySlug || "",
       price: numPrice,
-      originalPrice: hasPromo ? numOldPrice : undefined,
+      originalPrice: hasPromo && numOldPrice ? numOldPrice : undefined,
       discountPercent,
       rating: 5.0,
-      reviewCount: 1,
+      reviewCount: 0,
       inStock: stock === "" || Number(stock) > 0,
       stockCount: typeof stock === "number" ? stock : 0,
       isFeatured: true,
       isBestSeller: false,
-      images: [image.trim() || "/decor-honeycomb-calligraphy.webp", ...additionalImages],
-      description:
-        description.trim() ||
-        "Pièce d'artisanat marocain d'exception confectionnée à la main par nos maîtres artisans.",
-      shortDescription: description.trim() || "Création artisanale marocaine authentique.",
+      images: imgs,
+      description: description.trim(),
+      shortDescription: description.trim(),
       artisan: {
-        name: artisanName.trim() || "Maâlem Artisan Marjad",
-        city: artisanCity.trim() || "Marrakech Médina",
-        craft: selectedCategoryName || "Artisanat d'Art",
+        name: artisanName.trim(),
+        city: artisanCity.trim(),
+        craft: selectedCategoryName || "",
       },
       details: {
-        material: material.trim() || "Matières nobles marocaines",
-        dimensions: dimensions.trim() || "Dimensions sur mesure",
-        origin: artisanCity.trim() || "Maroc",
+        material: material.trim(),
+        dimensions: dimensions.trim(),
+        origin: artisanCity.trim(),
       },
-      tags: [selectedCategoryName || "Artisanat", "Fait Main"],
+      tags: selectedCategoryName ? [selectedCategoryName] : [],
     };
   }, [
     productId,
@@ -467,14 +486,32 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                 <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
                   Photo Principale (Studio) *
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="Ex: /decor-honeycomb-calligraphy.webp ou lien image"
-                  className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e]"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    placeholder="Ex: /decor-honeycomb-calligraphy.webp ou https://..."
+                    className="flex-1 bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e]"
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2.5 rounded-xl border border-[#E9DCD5] bg-white hover:bg-[#FAF6F4] text-xs font-bold text-[#6d381e] flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs"
+                    title="Choisir une photo depuis votre appareil"
+                  >
+                    <UploadCloud className="w-4 h-4 text-[#ba4e1a]" />
+                    <span>Importer</span>
+                  </button>
+                </div>
               </div>
 
               {/* Photos Additionnelles */}

@@ -7,7 +7,7 @@ import { Product } from "@/types/product";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { formatPrice } from "@/lib/utils";
-import { Heart, ShoppingBag, Check } from "lucide-react";
+import { Heart, ShoppingBag, Check, Image as ImageIcon } from "lucide-react";
 import { TiltedCard } from "@/components/ui/TiltedCard";
 
 interface ProductCardProps {
@@ -26,6 +26,10 @@ export function ProductCard({
   const [isJustAdded, setIsJustAdded] = useState(false);
   const isFav = isInWishlist(product.id);
   const hasPromo = product.originalPrice && product.originalPrice > product.price;
+
+  // Image availability
+  const mainImage = product.images && product.images.length > 0 ? product.images[0] : "";
+  const hasImage = Boolean(mainImage && mainImage.trim() !== "");
 
   // Vérifier si le produit est déjà dans le panier
   const inCart = items.some((item) => String(item.product.id) === String(product.id));
@@ -98,7 +102,7 @@ export function ProductCard({
           </div>
 
           {/* Badge Promo */}
-          {hasPromo && product.discountPercent && (
+          {hasPromo && product.discountPercent && product.price > 0 && (
             <span className="absolute top-3.5 left-3.5 z-10 px-2.5 py-1 rounded-full text-[10px] sm:text-[10.5px] font-extrabold uppercase tracking-wider bg-[#ba4e1a] text-white shadow-xs">
               -{product.discountPercent}%
             </span>
@@ -112,14 +116,25 @@ export function ProductCard({
                 : "group-hover:scale-55 group-hover:-translate-y-8"
             }`}
           >
-            <Image
-              src={product.images[0]}
-              alt={product.name}
-              width={240}
-              height={240}
-              priority={false}
-              className="object-contain max-h-[165px] sm:max-h-[175px] w-auto drop-shadow-xs group-hover:drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-600"
-            />
+            {hasImage ? (
+              <Image
+                src={mainImage}
+                alt={product.name || "Aperçu de la création"}
+                width={240}
+                height={240}
+                priority={false}
+                className="object-contain max-h-[165px] sm:max-h-[175px] w-auto drop-shadow-xs group-hover:drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-600"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center p-3 select-none">
+                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-[#d9cec5] bg-white/70 flex items-center justify-center mb-1.5 shadow-2xs">
+                  <ImageIcon className="w-5 h-5 text-[#ba4e1a]/40" />
+                </div>
+                <span className="text-[10.5px] font-semibold text-[#8c827a]">
+                  Aucune image
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -128,17 +143,29 @@ export function ProductCard({
           <div>
             {/* Catégorie */}
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#ba4e1a] block mb-1">
-              {product.category}
+              {product.category?.trim() ? (
+                product.category
+              ) : (
+                <span className="text-[#a8a29e]/60 font-normal italic normal-case tracking-normal text-[10px]">
+                  Catégorie
+                </span>
+              )}
             </span>
 
             {/* Nom du produit */}
             <h3 className="font-serif font-bold text-base sm:text-lg lg:text-xl text-[#1c1917] group-hover:text-[#ba4e1a] transition-colors line-clamp-1 leading-snug">
-              {product.name}
+              {product.name?.trim() ? (
+                product.name
+              ) : (
+                <span className="text-[#a8a29e] font-sans font-normal text-xs italic">
+                  Titre de la création...
+                </span>
+              )}
             </h3>
 
             {/* Description : Strictement 2 lignes avec 3 points (...) */}
             <p className="text-xs sm:text-sm text-[#78716c] line-clamp-2 mt-1.5 leading-relaxed">
-              {product.description}
+              {product.description || "—"}
             </p>
 
             {/* Détails matières : Taille de police agrandie et bien lisible */}
@@ -155,11 +182,17 @@ export function ProductCard({
             {/* Prix */}
             <div className="flex items-baseline gap-2">
               <span className="text-lg sm:text-xl font-extrabold text-[#1c1917]">
-                {formatPrice(product.price)}
+                {product.price && product.price > 0 ? (
+                  formatPrice(product.price)
+                ) : (
+                  <span className="text-[#a8a29e] font-sans font-semibold text-xs">
+                    — MAD
+                  </span>
+                )}
               </span>
-              {hasPromo && (
+              {hasPromo && product.originalPrice && product.originalPrice > 0 && (
                 <span className="text-xs sm:text-sm font-semibold text-[#8c827a] line-through">
-                  {formatPrice(product.originalPrice!)}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
             </div>
@@ -253,7 +286,7 @@ export function ProductCard({
           </div>
 
           {/* Promo Badge if discount exists */}
-          {hasPromo && product.discountPercent && (
+          {hasPromo && product.discountPercent && product.price > 0 && (
             <span className="absolute top-3.5 left-3.5 z-10 px-2.5 py-1 rounded-full text-[10px] sm:text-[10.5px] font-extrabold uppercase tracking-wider bg-[#ba4e1a] text-white shadow-xs">
               -{product.discountPercent}%
             </span>
@@ -262,18 +295,21 @@ export function ProductCard({
           {/* Wishlist Heart Button */}
           <button
             onClick={handleToggleFavorite}
-            className={`absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-xs cursor-pointer ${
-              isFav
-                ? "bg-white text-red-500 scale-105 shadow-sm"
-                : "bg-white/85 hover:bg-white text-[#1c1917]/60 hover:text-red-500 hover:scale-110"
+            disabled={disableLink}
+            className={`absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-xs ${
+              disableLink
+                ? "bg-white/80 text-[#8c827a] cursor-default"
+                : isFav
+                ? "bg-white text-red-500 scale-105 shadow-sm cursor-pointer"
+                : "bg-white/85 hover:bg-white text-[#1c1917]/60 hover:text-red-500 hover:scale-110 cursor-pointer"
             }`}
-            title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+            title={disableLink ? "Favoris" : isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
             aria-label="Favoris"
           >
-            <Heart className={`w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
+            <Heart className={`w-4 h-4 ${isFav && !disableLink ? "fill-red-500 text-red-500" : ""}`} />
           </button>
 
-          {/* Product Cutout Visual */}
+          {/* Product Cutout Visual or Empty Upload State */}
           <div
             className={`relative w-full h-full flex items-center justify-center z-10 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
               isTallPiece
@@ -281,14 +317,28 @@ export function ProductCard({
                 : "group-hover:scale-55 group-hover:-translate-y-8"
             }`}
           >
-            <Image
-              src={product.images[0]}
-              alt={product.name}
-              width={240}
-              height={240}
-              priority={false}
-              className="object-contain max-h-[165px] sm:max-h-[175px] w-auto drop-shadow-xs group-hover:drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-600"
-            />
+            {hasImage ? (
+              <Image
+                src={mainImage}
+                alt={product.name || "Aperçu de la création"}
+                width={240}
+                height={240}
+                priority={false}
+                className="object-contain max-h-[165px] sm:max-h-[175px] w-auto drop-shadow-xs group-hover:drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-600"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center p-3 select-none">
+                <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-[#d9cec5] bg-white/70 flex items-center justify-center mb-1.5 shadow-2xs">
+                  <ImageIcon className="w-6 h-6 text-[#ba4e1a]/40" />
+                </div>
+                <span className="text-[11px] font-semibold text-[#8c827a] tracking-wide">
+                  Aucune image
+                </span>
+                <span className="text-[9px] text-[#a8a29e] mt-0.5">
+                  Renseignez la photo studio
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -296,38 +346,58 @@ export function ProductCard({
         <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between bg-white border-t border-[#ebd8be]/40">
           <div>
             <span className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-widest text-[#ba4e1a] block mb-1">
-              {product.category}
+              {product.category?.trim() ? (
+                product.category
+              ) : (
+                <span className="text-[#a8a29e]/60 font-normal italic normal-case tracking-normal text-[10px]">
+                  Catégorie
+                </span>
+              )}
             </span>
             <h3 className="font-serif font-bold text-sm sm:text-[15px] lg:text-base text-[#1c1917] line-clamp-1 leading-snug">
-              {product.name}
+              {product.name?.trim() ? (
+                product.name
+              ) : (
+                <span className="text-[#a8a29e] font-sans font-normal text-xs italic">
+                  Titre de la pièce...
+                </span>
+              )}
             </h3>
           </div>
 
           <div className="flex items-center justify-between mt-2.5 pt-0">
             <div className="flex items-baseline gap-1.5 sm:gap-2">
               <span className="text-[15px] sm:text-base font-extrabold text-[#1c1917]">
-                {formatPrice(product.price)}
+                {product.price && product.price > 0 ? (
+                  formatPrice(product.price)
+                ) : (
+                  <span className="text-[#a8a29e] font-sans font-semibold text-xs">
+                    — MAD
+                  </span>
+                )}
               </span>
-              {hasPromo && (
+              {hasPromo && product.originalPrice && product.originalPrice > 0 && (
                 <span className="text-xs sm:text-[12.5px] font-semibold text-[#8c827a] line-through">
-                  {formatPrice(product.originalPrice!)}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
             </div>
 
-            {/* Bouton Panier (Bloqué / Gris si déjà dans le panier) */}
+            {/* Bouton Panier (Bloqué / Gris si déjà dans le panier ou si mode preview) */}
             <button
               onClick={handleAddToCart}
-              disabled={inCart}
+              disabled={disableLink || inCart}
               className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-xs ${
-                inCart
+                disableLink
+                  ? "bg-[#f5f1eb] text-[#8c827a] border border-[#ebd8be] cursor-default opacity-80"
+                  : inCart
                   ? "bg-[#e5e5e5] text-[#737373] border border-[#d4d4d4] cursor-not-allowed opacity-85"
                   : isJustAdded
                   ? "bg-emerald-600 text-white scale-105 cursor-pointer"
                   : "bg-[#1c1917] hover:bg-[#ba4e1a] active:scale-95 text-white hover:shadow-md cursor-pointer"
               }`}
-              title={inCart ? "Déjà dans le panier" : "Ajouter au panier"}
-              aria-label={inCart ? "Déjà dans le panier" : "Ajouter au panier"}
+              title={disableLink ? "Aperçu de la création" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
+              aria-label={disableLink ? "Aperçu" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
             >
               {inCart ? (
                 <Check className="w-3.5 h-3.5 text-[#525252] stroke-[2.5]" />
