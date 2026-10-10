@@ -13,9 +13,14 @@ import { TiltedCard } from "@/components/ui/TiltedCard";
 interface ProductCardProps {
   product: Product;
   variant?: "grid" | "list";
+  disableLink?: boolean;
 }
 
-export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
+export function ProductCard({
+  product,
+  variant = "grid",
+  disableLink = false,
+}: ProductCardProps) {
   const { addItem, items } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [isJustAdded, setIsJustAdded] = useState(false);
@@ -44,6 +49,7 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disableLink) return;
     if (inCart) return;
     addItem(product, 1);
     setIsJustAdded(true);
@@ -53,6 +59,7 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disableLink) return;
     toggleWishlist(product);
   };
 
@@ -60,13 +67,22 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
   // 1. VARIANT LIST (Affichage horizontal 1 produit par ligne à 100% de largeur)
   // =========================================================================
   if (variant === "list") {
+    const CardWrapper = disableLink ? "div" : Link;
+    const wrapperProps = disableLink
+      ? {
+          className:
+            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-300 overflow-hidden select-none",
+        }
+      : {
+          href: `/produit/${product.slug}`,
+          prefetch: true,
+          className:
+            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-300 overflow-hidden cursor-pointer select-none",
+        };
+
     return (
       <TiltedCard maxRotate={3.5} scaleOnHover={1.01} perspective={1400} showGlare={true} className="w-full">
-        <Link
-          href={`/produit/${product.slug}`}
-          prefetch={true}
-          className="group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-300 overflow-hidden cursor-pointer select-none"
-        >
+        <CardWrapper {...(wrapperProps as any)}>
         {/* LA PARTIE LEFT : Dimensions EXACTES de l'encadré image de la grille 3 colonnes (Largeur ~285-290px, Hauteur 235px) */}
         <div className="relative w-full sm:w-[285px] lg:w-[290px] h-[220px] sm:h-auto sm:min-h-[235px] shrink-0 flex items-center justify-center p-5 bg-gradient-to-b from-[#faf6f0] via-[#f7efe6]/70 to-[#f5ece1]/40 overflow-hidden">
           {/* Fond salon au hover */}
@@ -198,21 +214,30 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
             </div>
           </div>
         </div>
-      </Link>
-    </TiltedCard>
-  );
-}
+        </CardWrapper>
+      </TiltedCard>
+    );
+  }
 
   // =========================================================================
   // 2. VARIANT GRID (Affichage standard en grille 3 colonnes avec TiltedCard)
   // =========================================================================
+  const GridCardWrapper = disableLink ? "div" : Link;
+  const gridWrapperProps = disableLink
+    ? {
+        className:
+          "group relative flex flex-col h-full rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-400 overflow-hidden select-none",
+      }
+    : {
+        href: `/produit/${product.slug}`,
+        prefetch: true,
+        className:
+          "group relative flex flex-col h-full rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-400 overflow-hidden cursor-pointer select-none",
+      };
+
   return (
     <TiltedCard maxRotate={9} scaleOnHover={1.02} showGlare={true} className="h-full">
-      <Link
-        href={`/produit/${product.slug}`}
-        prefetch={true}
-        className="group relative flex flex-col h-full rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-400 overflow-hidden cursor-pointer select-none"
-      >
+      <GridCardWrapper {...(gridWrapperProps as any)}>
         {/* 1. TOP HALF: Product visual with interactive Salon Room hover simulation */}
         <div className="relative w-full h-[220px] sm:h-[235px] flex items-center justify-center p-5 bg-gradient-to-b from-[#faf6f0] via-[#f7efe6]/70 to-[#f5ece1]/40 overflow-hidden">
           {/* Photorealistic Salon Room Background (Fades in smoothly on hover) */}
@@ -314,7 +339,7 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
             </button>
           </div>
         </div>
-      </Link>
+      </GridCardWrapper>
     </TiltedCard>
   );
 }

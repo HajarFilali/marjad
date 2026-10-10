@@ -31,16 +31,6 @@ export type SupportTab = "suivi" | "livraison" | "retours" | "faq" | "confidenti
 export function Footer() {
   const pathname = usePathname();
 
-  // Hide footer completely on /panier, /commande, /login and /admin pages
-  if (
-    pathname?.startsWith("/panier") ||
-    pathname?.startsWith("/commande") ||
-    pathname === "/login" ||
-    pathname?.startsWith("/admin")
-  ) {
-    return null;
-  }
-
   const [activeSupportTab, setActiveSupportTab] = useState<SupportTab | null>(null);
   const [modalFaqIndex, setModalFaqIndex] = useState<number | null>(0);
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -192,8 +182,15 @@ export function Footer() {
   // Repeat sequence for seamless endless loop
   const marqueeList = [...tickerItems, ...tickerItems, ...tickerItems];
 
-  // Hide footer on Boutique and Login pages as requested (after all hooks to adhere to React Rules of Hooks)
-  if (pathname === "/boutique" || pathname === "/login") {
+  // Hide footer completely on /boutique, /login, /panier, /commande and /admin pages
+  // (Placed AFTER all hooks to strictly adhere to React Rules of Hooks)
+  if (
+    pathname === "/boutique" ||
+    pathname === "/login" ||
+    pathname?.startsWith("/panier") ||
+    pathname?.startsWith("/commande") ||
+    pathname?.startsWith("/admin")
+  ) {
     return null;
   }
 

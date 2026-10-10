@@ -620,7 +620,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                 }
               }}
             >
-              <ProductCard product={previewProduct} variant="grid" />
+              <ProductCard product={previewProduct} variant="grid" disableLink={true} />
             </div>
 
             {/* Actions: Annuler & Mettre à jour la pièce / Enregistrer */}
