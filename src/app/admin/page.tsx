@@ -618,13 +618,14 @@ export default function AdminDashboardPage() {
                       <Star className="w-3 h-3 text-[#6d381e] fill-[#6d381e]" />
                     </div>
 
-                    {/* Avatar with circle border */}
-                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-white shadow-xs group-hover:scale-105 transition-transform mb-1.5 bg-white shrink-0">
+                    {/* Product showcase image: 100% visible, fully displayed */}
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-[#E9DCD5] shadow-2xs group-hover:scale-105 transition-transform mb-2 bg-white flex items-center justify-center p-1.5 shrink-0">
                       <Image
                         src={product.image || "/images/products/prod-tapis.jpg"}
                         alt={product.name}
                         fill
-                        className="object-cover"
+                        className="object-contain p-1"
+                        sizes="(max-width: 640px) 64px, 80px"
                       />
                     </div>
 
@@ -1127,12 +1128,13 @@ export default function AdminDashboardPage() {
 
                   {/* Middle: Product Thumbnail + Title + Category */}
                   <div className="flex items-center gap-3.5 my-3.5">
-                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-xs bg-[#FAF7F2] shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border border-[#E9DCD5] shadow-2xs bg-white shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center p-1.5">
                       <Image
                         src={product.image || "/images/products/prod-tapis.jpg"}
                         alt={product.name}
                         fill
-                        className="object-cover"
+                        className="object-contain p-1"
+                        sizes="(max-width: 640px) 64px, 72px"
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1224,12 +1226,13 @@ export default function AdminDashboardPage() {
 
             {/* Product Identity */}
             <div className="flex items-center gap-3.5 pr-8">
-              <div className="w-14 h-14 rounded-2xl overflow-hidden relative border border-[#E9DCD5] shrink-0 bg-stone-50">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden relative border border-[#E9DCD5] shrink-0 bg-white shadow-2xs flex items-center justify-center p-1.5">
                 <Image
                   src={selectedCityProduct.image}
                   alt={selectedCityProduct.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-1"
+                  sizes="64px"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -1419,12 +1422,13 @@ export default function AdminDashboardPage() {
                             className="group flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-[#E9DCD5]/70 hover:border-[#6d381e] hover:bg-[#FAF7F2] transition-all duration-150 cursor-pointer text-left"
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-[#E9DCD5] shrink-0 bg-stone-50">
+                              <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-[#E9DCD5] shrink-0 bg-white shadow-2xs flex items-center justify-center p-1">
                                 <Image
                                   src={p.image}
                                   alt={p.name}
                                   fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                  className="object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                                  sizes="56px"
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
@@ -1524,12 +1528,13 @@ export default function AdminDashboardPage() {
                 <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
                   {/* Fiche d'identité de la création */}
                   <div className="flex items-start gap-3.5 sm:gap-4 p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#E9DCD5]">
-                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#E9DCD5] bg-white shrink-0 shadow-2xs">
+                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-[#E9DCD5] bg-white shrink-0 shadow-2xs flex items-center justify-center p-2">
                       <Image
                         src={selectedProductStats.image}
                         alt={selectedProductStats.name}
                         fill
-                        className="object-cover"
+                        className="object-contain p-1"
+                        sizes="(max-width: 640px) 80px, 96px"
                       />
                     </div>
                     <div className="min-w-0 flex-1">

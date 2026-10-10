@@ -196,12 +196,13 @@ function AdminReviewsContent() {
                   {/* Header: Product Image + Product Name + Stars */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="relative w-12 h-12 rounded-xl bg-white overflow-hidden shrink-0 border border-[#E9DCD5] shadow-2xs">
+                      <div className="relative w-14 h-14 rounded-xl bg-white overflow-hidden shrink-0 border border-[#E9DCD5] shadow-2xs flex items-center justify-center p-1">
                         <Image
                           src={review.productImage || "/images/products/prod-tapis.jpg"}
                           alt={review.productName}
                           fill
-                          className="object-cover"
+                          className="object-contain p-0.5"
+                          sizes="56px"
                         />
                       </div>
                       <div className="min-w-0 flex-1">

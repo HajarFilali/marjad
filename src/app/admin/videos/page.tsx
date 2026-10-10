@@ -304,12 +304,13 @@ function AdminVideosContent() {
 
                 {/* Tagged Product Box */}
                 <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/80 flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#FAF6F4] shrink-0 overflow-hidden border border-[#E9DCD5] shadow-2xs relative">
+                  <div className="w-12 h-12 rounded-xl bg-white shrink-0 overflow-hidden border border-[#E9DCD5] shadow-2xs relative flex items-center justify-center p-1">
                     <Image
                       src={taggedImage}
                       alt={video.productName}
                       fill
-                      className="object-cover"
+                      className="object-contain p-0.5"
+                      sizes="48px"
                     />
                   </div>
                   <div className="min-w-0 flex-1 space-y-0.5">
@@ -417,12 +418,13 @@ function AdminVideosContent() {
                           </span>
                         </div>
                         <div className="bg-white rounded-xl p-3 border border-[#EDE9E6] flex items-center gap-3 shadow-2xs">
-                          <div className="w-12 h-12 rounded-lg bg-[#FAF6F4] shrink-0 overflow-hidden border border-[#E9DCD5] relative">
+                          <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-[#E9DCD5] relative flex items-center justify-center p-1 shadow-2xs">
                             <Image
                               src={selectedProduct.image || "/images/products/prod-tapis.jpg"}
                               alt={selectedProduct.name}
                               fill
-                              className="object-cover"
+                              className="object-contain p-0.5"
+                              sizes="56px"
                             />
                           </div>
                           <div className="min-w-0 flex-1">

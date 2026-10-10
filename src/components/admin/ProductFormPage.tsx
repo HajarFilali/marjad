@@ -423,9 +423,9 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   {additionalImages.map((imgUrl, i) => (
                     <div
                       key={i}
-                      className="relative aspect-square rounded-2xl overflow-hidden border border-[#E9DCD5] group bg-[#FAF6F4]"
+                      className="relative aspect-square rounded-2xl overflow-hidden border border-[#E9DCD5] group bg-white flex items-center justify-center p-1.5 shadow-2xs"
                     >
-                      <Image src={imgUrl} alt="Vue additionnelle" fill className="object-cover" />
+                      <Image src={imgUrl} alt="Vue additionnelle" fill className="object-contain p-1" sizes="100px" />
                       <button
                         type="button"
                         onClick={() => handleRemoveAddImage(i)}
@@ -556,12 +556,12 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
               <div className="bg-white rounded-2xl overflow-hidden border border-[#EDE9E6] shadow-sm flex flex-col justify-between">
                 {/* Image */}
-                <div className="relative aspect-square w-full bg-[#FAF6F4] overflow-hidden">
+                <div className="relative aspect-square w-full bg-[#FAF7F2] overflow-hidden flex items-center justify-center">
                   <Image
                     src={image || "/images/products/prod-tapis.jpg"}
                     alt={name || "Aperçu"}
                     fill
-                    className="object-cover"
+                    className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                   />
                   <span className="absolute top-3 left-3 bg-[#6d381e] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md">
                     Fait Main

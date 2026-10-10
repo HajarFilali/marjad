@@ -435,12 +435,13 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
                 {/* Product Summary */}
                 <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-[#FAF7F2] border border-[#E9DCD5]">
-                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white shrink-0 border border-[#E9DCD5]">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white shrink-0 border border-[#E9DCD5] flex items-center justify-center p-1 shadow-2xs">
                     <Image
                       src={selectedStatProduct.image}
                       alt={selectedStatProduct.name}
                       fill
-                      className="object-cover"
+                      className="object-contain p-0.5"
+                      sizes="64px"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -687,8 +688,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                               className="w-full flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#FAF7F2] border border-[#E9DCD5] transition text-left cursor-pointer group"
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-[#E9DCD5]">
-                                  <Image src={r.productImage} alt={r.productName} fill className="object-cover" />
+                                <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-white shrink-0 border border-[#E9DCD5] flex items-center justify-center p-0.5 shadow-2xs">
+                                  <Image src={r.productImage} alt={r.productName} fill className="object-contain p-0.5" sizes="48px" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
@@ -791,8 +792,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                               className="w-full flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#FAF7F2] border border-[#E9DCD5] transition text-left cursor-pointer group"
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-[#E9DCD5]">
-                                  <Image src={p.image} alt={p.name} fill className="object-cover" />
+                                <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-white shrink-0 border border-[#E9DCD5] flex items-center justify-center p-0.5 shadow-2xs">
+                                  <Image src={p.image} alt={p.name} fill className="object-contain p-0.5" sizes="48px" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="font-serif font-bold text-xs text-[#1F2937] group-hover:text-[#6d381e] truncate">
