@@ -287,34 +287,14 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1500px] w-full mx-auto space-y-6 pb-20">
-      {/* Top Header without the return link */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E9DCD5]">
-        <div className="space-y-1">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1F2937]">
-            {mode === "create" ? "Ajouter une Création d'Atelier" : "Modifier la Pièce d'Artisanat"}
-          </h1>
-          <p className="text-xs text-[#6B7280]">
-            Renseignez les détails authentiques de la pièce. La carte client à droite se met à jour en temps réel.
-          </p>
-        </div>
-
-        {/* Quick action buttons on top */}
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/admin/produits"
-            className="px-4 py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer"
-          >
-            Annuler
-          </Link>
-          <button
-            type="submit"
-            form="product-form"
-            className="inline-flex items-center gap-2 bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold px-6 py-2.5 rounded-full shadow-[0_4px_14px_rgba(109,56,30,0.22)] transition-all hover:scale-[1.02] cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            <span>{savedSuccess ? "Enregistré avec succès !" : mode === "create" ? "Enregistrer la création" : "Mettre à jour la pièce"}</span>
-          </button>
-        </div>
+      {/* Top Header without bottom border */}
+      <div className="space-y-1">
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1F2937]">
+          {mode === "create" ? "Ajouter une Création d'Atelier" : "Modifier la Pièce d'Artisanat"}
+        </h1>
+        <p className="text-xs text-[#6B7280]">
+          Renseignez les détails authentiques de la pièce. La carte client à droite se met à jour en temps réel.
+        </p>
       </div>
 
       {/* Main Form Body: Left Single Card Form + Right Live Boutique Preview */}
@@ -624,36 +604,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               </div>
             </div>
 
-            {/* Bottom Submit Row inside the card */}
-            <div className="pt-4 border-t border-[#EDE9E6] flex items-center justify-end gap-3">
-              <Link
-                href="/admin/produits"
-                className="px-5 py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer"
-              >
-                Annuler
-              </Link>
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold px-7 py-2.5 rounded-full shadow-[0_4px_14px_rgba(109,56,30,0.22)] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>{savedSuccess ? "Enregistré avec succès !" : mode === "create" ? "Enregistrer la création" : "Mettre à jour la pièce"}</span>
-              </button>
-            </div>
           </div>
 
-          {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Dimensions 1:1 */}
+          {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Dimensions 1:1 + Sticky Actions */}
           <div className="w-full lg:w-[285px] shrink-0 lg:sticky lg:top-6 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#6d381e]">
-                <Sparkles className="w-4 h-4 text-[#ba4e1a]" />
-                <span>Aperçu Boutique (Rendu Direct)</span>
-              </div>
-              <span className="text-[10px] font-bold text-[#ba4e1a] bg-[#ba4e1a]/10 px-2 py-0.5 rounded-full">
-                Boutique 1:1
-              </span>
-            </div>
-
             {/* Exact Boutique Product Card Dimensions (w-[285px]) */}
             <div
               className="w-[285px] mx-auto select-none"
@@ -669,9 +623,29 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               <ProductCard product={previewProduct} variant="grid" />
             </div>
 
-            <p className="text-[11px] text-[#6B7280] text-center italic">
-              Dimensions et animations strictement identiques à la page Boutique.
-            </p>
+            {/* Actions: Annuler & Mettre à jour la pièce / Enregistrer */}
+            <div className="flex items-center gap-2 w-[285px] mx-auto pt-1">
+              <Link
+                href="/admin/produits"
+                className="w-20 text-center py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer shrink-0"
+              >
+                Annuler
+              </Link>
+              <button
+                type="submit"
+                form="product-form"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold py-2.5 px-3 rounded-full shadow-[0_4px_14px_rgba(109,56,30,0.22)] transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  {savedSuccess
+                    ? "Enregistré !"
+                    : mode === "create"
+                    ? "Enregistrer"
+                    : "Mettre à jour la pièce"}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </form>
