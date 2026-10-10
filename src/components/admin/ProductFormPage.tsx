@@ -48,20 +48,20 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const [products, setProducts] = useState<AdminProduct[]>(INITIAL_ADMIN_PRODUCTS);
   const [categories, setCategories] = useState(INITIAL_ADMIN_CATEGORIES);
 
-  // Form states
+  // Form states - completely empty by default in create mode
   const [name, setName] = useState("");
   const [nameAr, setNameAr] = useState("");
-  const [categorySlug, setCategorySlug] = useState("tapis-berberes");
+  const [categorySlug, setCategorySlug] = useState("");
   const [artisanName, setArtisanName] = useState("");
-  const [artisanCity, setArtisanCity] = useState("Fès Médina");
-  const [material, setMaterial] = useState("100% Pure Laine d'agneau de l'Atlas");
-  const [dimensions, setDimensions] = useState("250 cm x 160 cm");
+  const [artisanCity, setArtisanCity] = useState("");
+  const [material, setMaterial] = useState("");
+  const [dimensions, setDimensions] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number>(1800);
+  const [price, setPrice] = useState<number | "">("");
   const [hasPromo, setHasPromo] = useState(false);
-  const [oldPrice, setOldPrice] = useState<number>(2400);
-  const [stock, setStock] = useState<number>(6);
-  const [image, setImage] = useState("/images/products/prod-tapis.jpg");
+  const [oldPrice, setOldPrice] = useState<number | "">("");
+  const [stock, setStock] = useState<number | "">("");
+  const [image, setImage] = useState("");
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [newAddImageUrl, setNewAddImageUrl] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -87,23 +87,24 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     if (mode === "edit" && productId) {
       const p = products.find((it) => String(it.id) === String(productId));
       if (p) {
-        setName(p.name);
+        setName(p.name || "");
         setNameAr(p.nameAr || "");
-        setCategorySlug(p.categorySlug || "tapis-berberes");
-        setArtisanName(p.artisanName || "Maâlem Artisan Marjad");
-        setArtisanCity(p.artisanCity || "Marrakech Médina");
-        setMaterial(p.material || "Laine & Soie végétale");
-        setDimensions(p.dimensions || "Dimensions sur mesure");
+        setCategorySlug(p.categorySlug || "");
+        setArtisanName(p.artisanName || "");
+        setArtisanCity(p.artisanCity || "");
+        setMaterial(p.material || "");
+        setDimensions(p.dimensions || "");
         setDescription(p.description || p.shortDescription || "");
-        setPrice(p.price || 1500);
+        setPrice(typeof p.price === "number" ? p.price : "");
         if (p.oldPrice && p.oldPrice > p.price) {
           setHasPromo(true);
           setOldPrice(p.oldPrice);
         } else {
           setHasPromo(false);
+          setOldPrice("");
         }
-        setStock(p.stock !== undefined ? p.stock : 8);
-        setImage(p.image || "/images/products/prod-tapis.jpg");
+        setStock(p.stock !== undefined ? p.stock : "");
+        setImage(p.image || "");
         setAdditionalImages(p.images?.filter((img) => img !== p.image) || []);
       }
     }
@@ -117,7 +118,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   }, [categories]);
 
   const selectedCategoryName = useMemo(() => {
-    return categories.find((c) => c.slug === categorySlug)?.name || "Artisanat d'Art";
+    return categories.find((c) => c.slug === categorySlug)?.name || "";
   }, [categories, categorySlug]);
 
   const handleAddImage = () => {
@@ -133,9 +134,11 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
   // Live Boutique preview product model
   const previewProduct: Product = useMemo(() => {
+    const numPrice = typeof price === "number" ? price : 0;
+    const numOldPrice = typeof oldPrice === "number" ? oldPrice : undefined;
     const discountPercent =
-      hasPromo && oldPrice > price
-        ? Math.round(((oldPrice - price) / oldPrice) * 100)
+      hasPromo && numOldPrice && numOldPrice > numPrice
+        ? Math.round(((numOldPrice - numPrice) / numOldPrice) * 100)
         : undefined;
 
     return {
@@ -143,31 +146,33 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       slug: name ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "creation-artisanale",
       name: name.trim() || "Nom de la Création d'Artisanat",
       nameAr: nameAr.trim() || undefined,
-      category: selectedCategoryName,
-      categorySlug: categorySlug,
-      price: Number(price) || 0,
-      originalPrice: hasPromo ? Number(oldPrice) : undefined,
+      category: selectedCategoryName || "Artisanat d'Art",
+      categorySlug: categorySlug || "artisanat",
+      price: numPrice,
+      originalPrice: hasPromo ? numOldPrice : undefined,
       discountPercent,
       rating: 5.0,
       reviewCount: 1,
-      inStock: Number(stock) > 0,
-      stockCount: Number(stock) || 0,
+      inStock: stock === "" || Number(stock) > 0,
+      stockCount: typeof stock === "number" ? stock : 0,
       isFeatured: true,
       isBestSeller: false,
-      images: [image.trim() || "/images/products/prod-tapis.jpg", ...additionalImages],
-      description: description.trim() || "Pièce d'artisanat marocain d'exception confectionnée à la main par nos maîtres artisans.",
+      images: [image.trim() || "/decor-honeycomb-calligraphy.webp", ...additionalImages],
+      description:
+        description.trim() ||
+        "Pièce d'artisanat marocain d'exception confectionnée à la main par nos maîtres artisans.",
       shortDescription: description.trim() || "Création artisanale marocaine authentique.",
       artisan: {
         name: artisanName.trim() || "Maâlem Artisan Marjad",
         city: artisanCity.trim() || "Marrakech Médina",
-        craft: selectedCategoryName,
+        craft: selectedCategoryName || "Artisanat d'Art",
       },
       details: {
         material: material.trim() || "Matières nobles marocaines",
         dimensions: dimensions.trim() || "Dimensions sur mesure",
         origin: artisanCity.trim() || "Maroc",
       },
-      tags: [selectedCategoryName, "Artisanat", "Fait Main"],
+      tags: [selectedCategoryName || "Artisanat", "Fait Main"],
     };
   }, [
     productId,
@@ -192,7 +197,13 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     e.preventDefault();
 
     const currentList = products.length > 0 ? products : INITIAL_ADMIN_PRODUCTS;
-    const finalStock = Number(stock) || 0;
+    const finalStock = typeof stock === "number" ? stock : Number(stock) || 0;
+    const finalPrice = typeof price === "number" ? price : Number(price) || 0;
+    const finalOldPrice = hasPromo && typeof oldPrice === "number" ? oldPrice : undefined;
+    const resolvedCategorySlug = categorySlug || categories[0]?.slug || "artisanat";
+    const resolvedCategoryName = selectedCategoryName || categories[0]?.name || "Artisanat d'Art";
+    const resolvedImage = image.trim() || "/decor-honeycomb-calligraphy.webp";
+
     const stockStatus: "in_stock" | "low_stock" | "out_of_stock" =
       finalStock <= 0 ? "out_of_stock" : finalStock <= 4 ? "low_stock" : "in_stock";
 
@@ -203,10 +214,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               ...p,
               name: name.trim(),
               nameAr: nameAr.trim() || undefined,
-              categorySlug,
-              categoryName: selectedCategoryName,
-              price: Number(price),
-              oldPrice: hasPromo ? Number(oldPrice) : undefined,
+              categorySlug: resolvedCategorySlug,
+              categoryName: resolvedCategoryName,
+              price: finalPrice,
+              oldPrice: finalOldPrice,
               stock: finalStock,
               status: stockStatus,
               artisanName: artisanName.trim(),
@@ -214,8 +225,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               material: material.trim(),
               dimensions: dimensions.trim(),
               description: description.trim(),
-              image: image.trim(),
-              images: [image.trim(), ...additionalImages],
+              image: resolvedImage,
+              images: [resolvedImage, ...additionalImages],
             }
           : p
       );
@@ -235,18 +246,18 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         name: name.trim(),
         nameAr: nameAr.trim() || undefined,
         slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        categorySlug,
-        categoryName: selectedCategoryName,
-        price: Number(price),
-        oldPrice: hasPromo ? Number(oldPrice) : undefined,
+        categorySlug: resolvedCategorySlug,
+        categoryName: resolvedCategoryName,
+        price: finalPrice,
+        oldPrice: finalOldPrice,
         stock: finalStock,
         status: stockStatus,
         dateAdded: new Date().toISOString().split("T")[0],
         salesCount: 0,
         rating: 5.0,
         reviewsCount: 0,
-        image: image.trim() || "/images/products/prod-tapis.jpg",
-        images: [image.trim() || "/images/products/prod-tapis.jpg", ...additionalImages],
+        image: resolvedImage,
+        images: [resolvedImage, ...additionalImages],
         shortDescription: description.trim().slice(0, 100),
         description: description.trim(),
         artisanName: artisanName.trim() || "Maâlem Artisan Marjad",
@@ -308,9 +319,9 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
       {/* Main Form Body: Left Single Card Form + Right Live Boutique Preview */}
       <form id="product-form" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* LA PARTIE LEFT: Tout rassemblé dans UN SEUL DIV (Unified Single Card) */}
-          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl p-6 sm:p-8 border border-[#E9DCD5] shadow-xs space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+          {/* LA PARTIE LEFT: Le formulaire prend toute la largeur restante disponible */}
+          <div className="flex-1 min-w-0 bg-white rounded-3xl p-6 sm:p-8 border border-[#E9DCD5] shadow-xs space-y-6">
             {/* Section 1: Informations Générales & Identité */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-[#EDE9E6]">
@@ -330,7 +341,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Tapis Beni Ourain 'Atlas Royal'"
+                  placeholder="Ex: Tableau Ruche 'سبحان الله وبحمده' ou Tapis Beni Ourain"
                   className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-medium transition"
                 />
               </div>
@@ -345,7 +356,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   dir="rtl"
                   value={nameAr}
                   onChange={(e) => setNameAr(e.target.value)}
-                  placeholder="مثال: زربية بني ورين الملكية من صوف الأطلس"
+                  placeholder="مثال: لوحة خلية النحل 'سبحان الله وبحمده' المذهبة"
                   className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] font-arabic font-medium transition"
                 />
               </div>
@@ -360,6 +371,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   onChange={(val) => setCategorySlug(val)}
                   options={categoryOptions}
                   icon={Layers}
+                  placeholder="Sélectionner une catégorie..."
                   triggerClassName="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl text-xs py-2.5 text-[#1F2937]"
                 />
               </div>
@@ -386,7 +398,8 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                       required
                       min={1}
                       value={price}
-                      onChange={(e) => setPrice(Number(e.target.value))}
+                      onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="Ex: 1350"
                       className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
                     />
                     <span className="absolute right-4 text-xs font-bold text-[#ba4e1a]">
@@ -405,11 +418,14 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     required
                     min={0}
                     value={stock}
-                    onChange={(e) => setStock(Number(e.target.value))}
+                    onChange={(e) => setStock(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="Ex: 6"
                     className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
                   />
                   <span className="text-[10px] text-[#6B7280] mt-1 block">
-                    {stock === 0 ? (
+                    {stock === "" ? (
+                      <span className="text-[#8c827a]">Indiquez la quantité disponible</span>
+                    ) : stock === 0 ? (
                       <span className="text-red-600 font-bold">⚠️ Pièce en rupture</span>
                     ) : stock <= 4 ? (
                       <span className="text-amber-600 font-bold">⚠️ Stock faible (Alerte activée)</span>
@@ -441,10 +457,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     </label>
                     <input
                       type="number"
-                      min={price}
+                      min={typeof price === "number" ? price : 1}
                       value={oldPrice}
-                      onChange={(e) => setOldPrice(Number(e.target.value))}
-                      placeholder="Ex: 2400"
+                      onChange={(e) => setOldPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="Ex: 1650"
                       className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2 text-xs text-[#1F2937] font-bold outline-none focus:border-[#6d381e]"
                     />
                   </div>
@@ -476,7 +492,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                   required
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  placeholder="/images/products/prod-tapis.jpg ou lien web"
+                  placeholder="Ex: /decor-honeycomb-calligraphy.webp ou lien image"
                   className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e]"
                 />
               </div>
@@ -546,7 +562,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={artisanName}
                     onChange={(e) => setArtisanName(e.target.value)}
-                    placeholder="Ex: Coopérative Tithrit"
+                    placeholder="Ex: Maâlem Idrissi, Coopérative Tithrit..."
                     className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
                   />
                 </div>
@@ -558,7 +574,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={artisanCity}
                     onChange={(e) => setArtisanCity(e.target.value)}
-                    placeholder="Ex: Fès Médina, Marrakech, Taza..."
+                    placeholder="Ex: Fès Médina, Marrakech, Khenifra, Taza..."
                     className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
                   />
                 </div>
@@ -574,7 +590,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    placeholder="Ex: 100% Pure Laine d'agneau"
+                    placeholder="Ex: Bois noble, résine marbrée & Laiton doré..."
                     className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
                   />
                 </div>
@@ -586,7 +602,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="text"
                     value={dimensions}
                     onChange={(e) => setDimensions(e.target.value)}
-                    placeholder="Ex: 250 cm x 160 cm"
+                    placeholder="Ex: 75 cm x 28 cm"
                     className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition"
                   />
                 </div>
@@ -626,21 +642,21 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
             </div>
           </div>
 
-          {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Animations */}
-          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-6 space-y-3">
+          {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Dimensions 1:1 */}
+          <div className="w-full lg:w-[285px] shrink-0 lg:sticky lg:top-6 space-y-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#6d381e]">
                 <Sparkles className="w-4 h-4 text-[#ba4e1a]" />
-                <span>Aperçu Boutique (Rendu Client en Direct)</span>
+                <span>Aperçu Boutique (Rendu Direct)</span>
               </div>
-              <span className="text-[10px] font-bold text-[#ba4e1a] bg-[#ba4e1a]/10 px-2.5 py-0.5 rounded-full">
-                Interactive
+              <span className="text-[10px] font-bold text-[#ba4e1a] bg-[#ba4e1a]/10 px-2 py-0.5 rounded-full">
+                Boutique 1:1
               </span>
             </div>
 
-            {/* Exact Boutique Product Card with tilt, hover salon room, badge, size */}
+            {/* Exact Boutique Product Card Dimensions (w-[285px]) */}
             <div
-              className="w-full max-w-[340px] mx-auto select-none"
+              className="w-[285px] mx-auto select-none"
               onClick={(e) => {
                 // Prevent navigation when clicking card in admin preview
                 const target = e.target as HTMLElement;
@@ -654,7 +670,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
             </div>
 
             <p className="text-[11px] text-[#6B7280] text-center italic">
-              Survolez la carte pour tester l&apos;animation d&apos;ambiance salon et l&apos;effet 3D.
+              Dimensions et animations strictement identiques à la page Boutique.
             </p>
           </div>
         </div>
