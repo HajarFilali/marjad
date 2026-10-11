@@ -29,6 +29,29 @@ export const CategoryFormPage: React.FC<CategoryFormPageProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
+  const fromParam = searchParams.get("from");
+
+  const [effectiveReturnUrl, setEffectiveReturnUrl] = useState<string | null>(returnUrl);
+  const [isFromProduct, setIsFromProduct] = useState(false);
+
+  useEffect(() => {
+    let target = returnUrl;
+    if (!target && typeof window !== "undefined") {
+      target = sessionStorage.getItem("marjad_nav_from_product");
+    }
+    const hasDraft =
+      typeof window !== "undefined" && !!localStorage.getItem("marjad_product_form_draft");
+    const cameFromProd =
+      fromParam === "product" || !!target?.includes("/admin/produits") || hasDraft;
+
+    if (cameFromProd) {
+      setIsFromProduct(true);
+      setEffectiveReturnUrl(target || "/admin/produits/new");
+    } else {
+      setIsFromProduct(false);
+      setEffectiveReturnUrl(target || null);
+    }
+  }, [returnUrl, fromParam]);
 
   const [categories, setCategories] = useState<AdminCategory[]>(INITIAL_ADMIN_CATEGORIES);
 
@@ -117,15 +140,24 @@ export const CategoryFormPage: React.FC<CategoryFormPageProps> = ({
 
     setSavedSuccess(true);
     setTimeout(() => {
-      if (returnUrl) {
-        router.push(`${returnUrl}?selectedCat=${encodeURIComponent(finalSlug)}`);
+      if (isFromProduct && effectiveReturnUrl) {
+        router.push(`${effectiveReturnUrl}?selectedCat=${encodeURIComponent(finalSlug)}`);
       } else {
         router.push("/admin/categories");
       }
     }, 700);
   };
 
-  const backHref = returnUrl || "/admin/categories";
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isFromProduct && effectiveReturnUrl) {
+      router.push(effectiveReturnUrl);
+    } else {
+      router.push("/admin/categories");
+    }
+  };
+
+  const backHref = isFromProduct && effectiveReturnUrl ? effectiveReturnUrl : "/admin/categories";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1300px] w-full mx-auto space-y-6 pb-20">
@@ -134,11 +166,12 @@ export const CategoryFormPage: React.FC<CategoryFormPageProps> = ({
         <div className="space-y-1">
           <Link
             href={backHref}
+            onClick={handleCancel}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ba4e1a] hover:text-[#6d381e] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>
-              {returnUrl ? "Retour au formulaire produit" : "Retour aux catégories d'artisanat"}
+              {isFromProduct ? "Retour au formulaire produit" : "Retour aux catégories d'artisanat"}
             </span>
           </Link>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1F2937]">
@@ -150,12 +183,13 @@ export const CategoryFormPage: React.FC<CategoryFormPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            href={backHref}
+          <button
+            type="button"
+            onClick={handleCancel}
             className="px-4 py-2.5 rounded-full border border-[#E9DCD5] text-xs font-bold text-[#6B7280] hover:bg-stone-50 transition cursor-pointer"
           >
             Annuler
-          </Link>
+          </button>
           <button
             type="submit"
             form="category-form"

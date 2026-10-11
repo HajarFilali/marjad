@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
@@ -42,10 +42,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="h-screen w-screen bg-[#FAF6F0] flex flex-col lg:flex-row antialiased selection:bg-[#ba4e1a] selection:text-white overflow-hidden">
       {/* Sidebar persistante avec courbures d'onglets intégrées */}
-      <AdminSidebar
-        pendingOrdersCount={0}
-        totalProductsCount={93}
-      />
+      <Suspense fallback={<aside className="w-64 bg-[#FAF6F0] hidden lg:block" />}>
+        <AdminSidebar
+          pendingOrdersCount={0}
+          totalProductsCount={93}
+        />
+      </Suspense>
 
       {/* Canevas de contenu blanc arrondi, encadré par le fond doux MARJAD */}
       <div className="flex-1 flex flex-col min-w-0 py-2.5 sm:py-3.5 lg:py-4 pr-2.5 sm:pr-3.5 lg:pr-4 pl-0 h-full">

@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { CategoryFormPage } from "@/components/admin/CategoryFormPage";
 
 export const metadata = {
-  title: "Nouvelle Collection | Admin MARJAD",
+  title: "Nouvelle Catégorie | Admin MARJAD",
 };
 
 export default function NewCategoryAdminPage() {

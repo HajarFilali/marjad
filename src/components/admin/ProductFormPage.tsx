@@ -113,6 +113,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
           if (draft.categorySlug) setCategorySlug(draft.categorySlug);
         }
         localStorage.removeItem("marjad_product_form_draft");
+        sessionStorage.removeItem("marjad_nav_from_product");
       }
 
       if (selectedCatFromQuery) {
@@ -197,11 +198,14 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     };
     try {
       localStorage.setItem("marjad_product_form_draft", JSON.stringify(draft));
+      const currentPath =
+        typeof window !== "undefined" ? window.location.pathname : "/admin/produits/new";
+      sessionStorage.setItem("marjad_nav_from_product", currentPath);
     } catch {}
 
     const currentPath =
       typeof window !== "undefined" ? window.location.pathname : "/admin/produits/new";
-    router.push(`/admin/categories/new?returnUrl=${encodeURIComponent(currentPath)}`);
+    router.push(`/admin/categories/new?from=product&returnUrl=${encodeURIComponent(currentPath)}`);
   };
 
   // Handle Discount Remise Button Click (-10%, -15%, etc.)

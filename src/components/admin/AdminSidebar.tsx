@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -29,6 +29,28 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams?.get("returnUrl");
+  const fromParam = searchParams?.get("from");
+
+  // Determine if the user is in the category form but came from the product form
+  const [isFromProduits, setIsFromProduits] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedNav = sessionStorage.getItem("marjad_nav_from_product");
+      const hasDraft = !!localStorage.getItem("marjad_product_form_draft");
+      const isComingFromProd =
+        fromParam === "product" ||
+        !!returnUrl?.includes("/admin/produits") ||
+        !!storedNav?.includes("/admin/produits") ||
+        hasDraft;
+
+      setIsFromProduits(
+        Boolean(pathname?.startsWith("/admin/categories/new") && isComingFromProd)
+      );
+    }
+  }, [pathname, returnUrl, fromParam]);
 
   const mainNavItems = [
     {
@@ -71,6 +93,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const isActive = (href: string, exact = false) => {
     if (href === "/admin") {
       return pathname === "/admin" || pathname === "/admin/";
+    }
+    // When in category creation originating from a product form, keep Produits highlighted!
+    if (isFromProduits) {
+      if (href === "/admin/produits") return true;
+      if (href === "/admin/categories") return false;
     }
     if (exact) return pathname === href;
     return pathname?.startsWith(href);
