@@ -18,6 +18,11 @@ html, body {
   scrollbar-width: none;
 }
 
+/* Force all checkboxes across the app to brand brown */
+input[type="checkbox"] {
+  accent-color: #6d381e !important;
+}
+
 ::-webkit-scrollbar {
   display: none;
   width: 0px;

@@ -544,7 +544,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     type="checkbox"
                     checked={hasPromo}
                     onChange={(e) => handleTogglePromo(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                    className="w-4 h-4 rounded accent-[#6d381e] cursor-pointer"
                   />
                 </label>
               </div>
@@ -700,7 +700,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                         type="checkbox"
                         checked={isFeatured}
                         onChange={(e) => setIsFeatured(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                        className="w-4 h-4 rounded accent-[#6d381e] cursor-pointer"
                       />
                       <span className="text-xs text-[#1F2937] font-medium">
                         Coup de Cœur Atelier (À la Une sur l&apos;accueil)
@@ -711,7 +711,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                         type="checkbox"
                         checked={isBestSeller}
                         onChange={(e) => setIsBestSeller(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                        className="w-4 h-4 rounded accent-[#6d381e] cursor-pointer"
                       />
                       <span className="text-xs text-[#1F2937] font-medium">
                         Badge &quot;Best-Seller&quot; (Pièce très convoitée)
@@ -722,7 +722,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                         type="checkbox"
                         checked={isNewArrival}
                         onChange={(e) => setIsNewArrival(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#6d381e] focus:ring-[#6d381e] cursor-pointer"
+                        className="w-4 h-4 rounded accent-[#6d381e] cursor-pointer"
                       />
                       <span className="text-xs text-[#1F2937] font-medium">
                         Badge &quot;Nouveauté&quot; (Création récente de l&apos;atelier)
