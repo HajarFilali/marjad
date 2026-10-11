@@ -6,8 +6,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { ShoppingBag, Heart, Menu, X, ArrowRight, Users, Banknote, Truck, ShieldCheck, Search } from "lucide-react";
+import { ShoppingBag, Heart, Menu, X, ArrowRight, Users, Banknote, Truck, ShieldCheck, Search, ChevronDown } from "lucide-react";
 import { SearchModal } from "@/components/search/SearchModal";
+import { DECOR_PRODUCTS } from "@/data/mockProducts";
+
+const STORE_NAV_CATEGORIES = [
+  { slug: "calligraphie", name: "Calligraphie Murale" },
+  { slug: "etagere", name: "Étagères & Mobilier Mural" },
+  { slug: "arche", name: "Arches & Panneaux" },
+  { slug: "miroir", name: "Miroirs d'Art" },
+  { slug: "medaillon", name: "Médaillons & Reliefs" },
+];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -22,6 +31,67 @@ export function Navbar() {
 
   // Active section tracking ("accueil", "boutique", "a-propos", "contact")
   const [activeSection, setActiveSection] = useState<string>("accueil");
+
+  // Dropdown Catégories (Vinillia style)
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Calcul dynamique des compteurs réels de produits pour chaque catégorie
+  const navCategories = React.useMemo(() => {
+    return STORE_NAV_CATEGORIES.map((cat) => {
+      const normSlug = cat.slug
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      const count = DECOR_PRODUCTS.filter((p) => {
+        const normProdCat = p.category
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        return (
+          normProdCat.includes(normSlug) ||
+          (normSlug.includes("calligraphie") && normProdCat.includes("calligraphie")) ||
+          (normSlug.includes("etagere") && normProdCat.includes("etagere")) ||
+          (normSlug.includes("arche") && normProdCat.includes("arche")) ||
+          (normSlug.includes("miroir") && normProdCat.includes("miroir")) ||
+          (normSlug.includes("medaillon") && normProdCat.includes("medaillon"))
+        );
+      }).length;
+      return {
+        ...cat,
+        count,
+      };
+    });
+  }, []);
+
+  // Fermeture du dropdown lors du clic extérieur ou de l'appui sur Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsCategoriesOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsCategoriesOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  // Fermeture automatique lors d'un changement de route
+  useEffect(() => {
+    setIsCategoriesOpen(false);
+    setMobileCategoriesOpen(false);
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Navigation Links: Accueil, Boutique, À propos, Contact
   const navLinks = [
@@ -283,32 +353,129 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Center: 4 Links in French - Centered relative to navbar width */}
-          <div className="hidden md:flex items-center space-x-7 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link) => {
-              const isActive =
-                pathname === "/contact"
-                  ? link.id === "contact"
-                  : pathname === "/boutique"
-                  ? link.id === "boutique"
-                  : pathname === "/"
-                  ? activeSection === link.id
-                  : pathname === link.href;
-              return (
-                <Link
-                  key={link.id}
-                  href={link.href}
-                  onClick={(e) => handleNavLinkClick(e, link)}
-                  className={`text-[13px] tracking-wide transition-colors relative py-1 ${
-                    isActive
-                      ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                      : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-                  } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+          {/* Center: Links in French with Vinillia-Style Categories Dropdown */}
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-7 absolute left-1/2 -translate-x-1/2">
+            {/* 1. Accueil */}
+            <Link
+              href="/"
+              onClick={(e) => handleNavLinkClick(e, { id: "accueil", href: "/" })}
+              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+                pathname === "/" && activeSection === "accueil"
+                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
+                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
+              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+            >
+              Accueil
+            </Link>
+
+            {/* 2. Boutique */}
+            <Link
+              href="/boutique"
+              onClick={(e) => handleNavLinkClick(e, { id: "boutique", href: "/boutique" })}
+              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+                pathname === "/boutique"
+                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
+                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
+              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+            >
+              Boutique
+            </Link>
+
+            {/* 3. Catégories Dropdown (Exact Vinillia Reference: Chevron v / ^, White Card, Name on Left, Count (X) on Right) */}
+            <div
+              ref={dropdownRef}
+              className="relative"
+              onMouseEnter={() => {
+                if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+                setIsCategoriesOpen(true);
+              }}
+              onMouseLeave={() => {
+                dropdownTimeoutRef.current = setTimeout(() => {
+                  setIsCategoriesOpen(false);
+                }, 180);
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsCategoriesOpen((prev) => !prev)}
+                className={`text-[13px] tracking-wide transition-colors relative py-1 flex items-center gap-1.5 cursor-pointer font-semibold ${
+                  isCategoriesOpen
+                    ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
+                    : "text-[#1c1917] hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
+                } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+                aria-expanded={isCategoriesOpen}
+                aria-haspopup="true"
+              >
+                <span>Catégories</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 stroke-[2.2] ${
+                    isCategoriesOpen ? "rotate-180 text-[#c4622d]" : "text-[#1c1917]/70"
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu Card (Style Vinillia) */}
+              {isCategoriesOpen && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
+                  onMouseEnter={() => {
+                    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+                  }}
+                  onMouseLeave={() => {
+                    dropdownTimeoutRef.current = setTimeout(() => {
+                      setIsCategoriesOpen(false);
+                    }, 180);
+                  }}
                 >
-                  {link.label}
-                </Link>
-              );
-            })}
+                  <div className="bg-white rounded-2xl p-2 sm:p-2.5 min-w-[275px] sm:min-w-[290px] border border-[#EDE9E6] shadow-[0_20px_45px_-10px_rgba(0,0,0,0.14)] flex flex-col space-y-0.5">
+                    {navCategories.map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        href={`/boutique?category=${cat.slug}`}
+                        onClick={() => {
+                          setIsCategoriesOpen(false);
+                          setActiveSection("boutique");
+                        }}
+                        className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-[#FAF7F2] text-[13px] font-medium text-[#1c1917] hover:text-[#ba4e1a] transition-all duration-200 group cursor-pointer"
+                      >
+                        <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                          {cat.name}
+                        </span>
+                        <span className="text-[11.5px] text-[#8c827a] font-normal group-hover:text-[#ba4e1a] transition-colors ml-4">
+                          ({cat.count})
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. À propos */}
+            <Link
+              href="/#a-propos"
+              onClick={(e) => handleNavLinkClick(e, { id: "a-propos", href: "/#a-propos" })}
+              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+                pathname === "/" && activeSection === "a-propos"
+                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
+                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
+              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+            >
+              À propos
+            </Link>
+
+            {/* 5. Contact */}
+            <Link
+              href="/contact"
+              onClick={(e) => handleNavLinkClick(e, { id: "contact", href: "/contact" })}
+              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+                pathname === "/contact"
+                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
+                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
+              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+            >
+              Contact
+            </Link>
           </div>
 
           {/* Right: Exact Order Requested -> [FR / AR] then [Favoris] then [Panier on FAR RIGHT] */}
@@ -578,33 +745,104 @@ export function Navbar() {
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <div className="relative z-10 md:hidden mt-2 mx-2 mb-3 bg-[#ffffff]/95 backdrop-blur-xl border border-[#ebd8be]/60 rounded-2xl px-4 py-3 space-y-1 shadow-lg animate-in slide-in-from-top-2">
-          {navLinks.map((link) => {
-            const isActive =
-              pathname === "/contact"
-                ? link.id === "contact"
-                : pathname === "/boutique"
-                ? link.id === "boutique"
-                : pathname === "/"
-                ? activeSection === link.id
-                : pathname === link.href;
-            return (
-              <Link
-                key={link.id}
-                href={link.href}
-                onClick={(e) => {
-                  setMobileMenuOpen(false);
-                  handleNavLinkClick(e, link);
-                }}
-                className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                  isActive
-                    ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
-                    : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
+          {/* Accueil */}
+          <Link
+            href="/"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleNavLinkClick(e, { id: "accueil", href: "/" });
+            }}
+            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              pathname === "/" && activeSection === "accueil"
+                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
+                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
+            }`}
+          >
+            Accueil
+          </Link>
+
+          {/* Boutique */}
+          <Link
+            href="/boutique"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleNavLinkClick(e, { id: "boutique", href: "/boutique" });
+            }}
+            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              pathname === "/boutique"
+                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
+                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
+            }`}
+          >
+            Boutique
+          </Link>
+
+          {/* Catégories Accordion (Mobile) */}
+          <div className="rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setMobileCategoriesOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d] transition-colors cursor-pointer"
+            >
+              <span>Catégories</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  mobileCategoriesOpen ? "rotate-180 text-[#c4622d]" : "text-[#78716c]"
                 }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+              />
+            </button>
+
+            {mobileCategoriesOpen && (
+              <div className="pl-3 pr-2 py-1 space-y-0.5 bg-[#FAF7F2]/70 rounded-xl my-1 border border-[#EDE9E6]">
+                {navCategories.map((cat) => (
+                  <Link
+                    key={cat.slug}
+                    href={`/boutique?category=${cat.slug}`}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileCategoriesOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-[#1c1917] hover:bg-white hover:text-[#c4622d] transition-colors"
+                  >
+                    <span>{cat.name}</span>
+                    <span className="text-[11px] text-[#8c827a]">({cat.count})</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* À propos */}
+          <Link
+            href="/#a-propos"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleNavLinkClick(e, { id: "a-propos", href: "/#a-propos" });
+            }}
+            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              pathname === "/" && activeSection === "a-propos"
+                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
+                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
+            }`}
+          >
+            À propos
+          </Link>
+
+          {/* Contact */}
+          <Link
+            href="/contact"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleNavLinkClick(e, { id: "contact", href: "/contact" });
+            }}
+            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              pathname === "/contact"
+                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
+                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
+            }`}
+          >
+            Contact
+          </Link>
         </div>
       )}
     </nav>

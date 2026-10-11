@@ -46,7 +46,10 @@ const ITEMS_PER_PAGE = 9;
 
 function BoutiqueContent() {
   const searchParams = useSearchParams();
-  const categoryParam = searchParams.get("category") || searchParams.get("cat");
+  const categoryParam =
+    searchParams.get("category") ||
+    searchParams.get("categorie") ||
+    searchParams.get("cat");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -61,20 +64,33 @@ function BoutiqueContent() {
   // Synchronisation dynamique du paramètre de catégorie depuis l'URL
   useEffect(() => {
     if (categoryParam) {
-      const p = categoryParam.toLowerCase();
-      const matched = STORE_CATEGORIES.find(
-        (c) =>
-          c.id.toLowerCase() === p ||
-          c.slug.toLowerCase() === p ||
-          p.includes(c.id.toLowerCase()) ||
-          c.slug.toLowerCase().includes(p)
-      );
+      const p = categoryParam.toLowerCase().trim();
+      const normP = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const matched = STORE_CATEGORIES.find((c) => {
+        const normId = c.id.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normSlug = c.slug.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normName = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return (
+          normId === normP ||
+          normSlug === normP ||
+          normP.includes(normId) ||
+          normSlug.includes(normP) ||
+          normName.includes(normP) ||
+          normP.includes(normName)
+        );
+      });
       if (matched) {
         setSelectedCategory(matched.slug);
       } else {
         setSelectedCategory(categoryParam);
       }
+      // Réinitialiser les autres filtres pour ne voir que les créations de la catégorie demandée
+      setSearchQuery("");
+      setSelectedMaterial("all");
+      setSpecialCollection("all");
       setCurrentPage(1);
+    } else {
+      setSelectedCategory("all");
     }
   }, [categoryParam]);
 
@@ -151,15 +167,15 @@ function BoutiqueContent() {
         cat.slug === "all"
           ? DECOR_PRODUCTS.length
           : DECOR_PRODUCTS.filter((p) => {
-              const catLower = cat.slug.toLowerCase();
-              const prodCat = p.category.toLowerCase();
+              const catNorm = cat.slug.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              const prodCatNorm = p.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
               return (
-                prodCat.includes(catLower) ||
-                (catLower === "calligraphie" && prodCat.includes("calligraphie")) ||
-                (catLower === "etagere" && prodCat.includes("étagère")) ||
-                (catLower === "arche" && prodCat.includes("arche")) ||
-                (catLower === "miroir" && prodCat.includes("miroir")) ||
-                (catLower === "medaillon" && prodCat.includes("médaillon"))
+                prodCatNorm.includes(catNorm) ||
+                (catNorm.includes("calligraphie") && prodCatNorm.includes("calligraphie")) ||
+                (catNorm.includes("etagere") && prodCatNorm.includes("etagere")) ||
+                (catNorm.includes("arche") && prodCatNorm.includes("arche")) ||
+                (catNorm.includes("miroir") && prodCatNorm.includes("miroir")) ||
+                (catNorm.includes("medaillon") && prodCatNorm.includes("medaillon"))
               );
             }).length;
       return {
@@ -191,15 +207,24 @@ function BoutiqueContent() {
 
       // 2. Filtre Catégorie
       if (selectedCategory !== "all") {
-        const catLower = selectedCategory.toLowerCase();
-        const prodCat = product.category.toLowerCase();
+        const normSelected = selectedCategory
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+        const normProdCat = product.category
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+
         const matchesCategory =
-          prodCat.includes(catLower) ||
-          (catLower.includes("calligraphie") && prodCat.includes("calligraphie")) ||
-          (catLower.includes("etagere") && prodCat.includes("étagère")) ||
-          (catLower.includes("arche") && prodCat.includes("arche")) ||
-          (catLower.includes("miroir") && prodCat.includes("miroir")) ||
-          (catLower.includes("medaillon") && prodCat.includes("médaillon"));
+          normProdCat.includes(normSelected) ||
+          (normSelected.includes("calligraphie") && normProdCat.includes("calligraphie")) ||
+          (normSelected.includes("etagere") && normProdCat.includes("etagere")) ||
+          (normSelected.includes("arche") && normProdCat.includes("arche")) ||
+          (normSelected.includes("miroir") && normProdCat.includes("miroir")) ||
+          (normSelected.includes("medaillon") && normProdCat.includes("medaillon"));
 
         if (!matchesCategory) {
           return false;
