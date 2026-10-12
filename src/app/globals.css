@@ -71,4 +71,22 @@ html.is-scrolled-page nav > .nav-bg-overlay {
   background: #ffffff !important;
 }
 
+/* Animation luxueuse lors du changement d'étape dans la Roadmap */
+@keyframes marjadPhaseIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.988);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-phase-switch {
+  animation: marjadPhaseIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 

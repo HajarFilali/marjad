@@ -97,7 +97,7 @@ export function Navbar() {
   const navLinks = [
     { id: "accueil", label: "Accueil", href: "/" },
     { id: "boutique", label: "Boutique", href: "/boutique" },
-    { id: "a-propos", label: "À propos", href: "/#a-propos" },
+    { id: "a-propos", label: "À propos", href: "/a-propos" },
     { id: "contact", label: "Contact", href: "/contact" },
   ];
 
@@ -116,6 +116,8 @@ export function Navbar() {
       setActiveSection("contact");
     } else if (pathname === "/boutique") {
       setActiveSection("boutique");
+    } else if (pathname === "/a-propos") {
+      setActiveSection("a-propos");
     } else if (pathname === "/login") {
       setActiveSection("");
     } else if (hasHash) {
@@ -165,15 +167,8 @@ export function Navbar() {
           }
         }
 
-        // Active section spy on home page (only for local anchors)
-        const aProposEl = document.getElementById("a-propos");
-        const aProposTop = aProposEl ? aProposEl.offsetTop - 260 : 999999;
-
-        if (effectiveY >= aProposTop) {
-          setActiveSection("a-propos");
-        } else {
-          setActiveSection("accueil");
-        }
+        // Active section on home page is always accueil (since À propos has its own dedicated page)
+        setActiveSection("accueil");
 
         if (effectiveY < 35 && !window.location.hash) {
           document.documentElement.classList.remove("is-scrolled-page");
@@ -190,10 +185,14 @@ export function Navbar() {
         }
         if (pathname === "/contact") {
           setActiveSection("contact");
+        } else if (pathname === "/a-propos") {
+          setActiveSection("a-propos");
+        } else if (pathname === "/boutique") {
+          setActiveSection("boutique");
         } else if (pathname === "/login") {
           setActiveSection("");
         } else {
-          setActiveSection("boutique");
+          setActiveSection("");
         }
         if (effectiveY < 35 && !window.location.hash) {
           document.documentElement.classList.remove("is-scrolled-page");
@@ -247,14 +246,6 @@ export function Navbar() {
       setIsScrolled(true);
       document.documentElement.classList.add("is-scrolled-page");
       try { sessionStorage.setItem("marjad_scrolled", "999"); } catch (e) {}
-      if (pathname === "/") {
-        e.preventDefault();
-        const el = document.getElementById("a-propos");
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth" });
-          window.history.pushState(null, "", "/#a-propos");
-        }
-      }
     } else if (link.id === "contact") {
       setActiveSection("contact");
     } else if (link.id === "boutique") {
@@ -275,7 +266,7 @@ export function Navbar() {
   return (
     <>
     <nav
-      className={`fixed left-1/2 -translate-x-1/2 z-50 w-[92%] sm:w-[94%] max-w-7xl transition-all duration-500 ease-out border-[#ebd8be]/80 ${
+      className={`fixed left-1/2 -translate-x-1/2 z-[100] w-[92%] sm:w-[94%] max-w-7xl transition-all duration-500 ease-out border-[#ebd8be]/80 ${
         isScrolled
           ? "top-3 sm:top-4 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.12)]"
           : "top-[44px] sm:top-[48px] shadow-[0_16px_36px_-10px_rgba(0,0,0,0.08)]"
@@ -308,7 +299,7 @@ export function Navbar() {
         }}
       />
 
-      <div className="relative z-10 w-full px-5 sm:px-7 lg:px-9">
+      <div className="relative z-40 w-full px-5 sm:px-7 lg:px-9">
         {/* Sleek height: h-14 sm:h-16 */}
         <div className="flex items-center justify-between h-14 sm:h-16">
 
@@ -359,11 +350,11 @@ export function Navbar() {
             <Link
               href="/"
               onClick={(e) => handleNavLinkClick(e, { id: "accueil", href: "/" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
                 pathname === "/" && activeSection === "accueil"
-                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
+                  : "text-[#1c1917] hover:text-[#c4622d]"
+              }`}
             >
               Accueil
             </Link>
@@ -372,11 +363,11 @@ export function Navbar() {
             <Link
               href="/boutique"
               onClick={(e) => handleNavLinkClick(e, { id: "boutique", href: "/boutique" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
                 pathname === "/boutique"
-                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
+                  : "text-[#1c1917] hover:text-[#c4622d]"
+              }`}
             >
               Boutique
             </Link>
@@ -400,9 +391,9 @@ export function Navbar() {
                 onClick={() => setIsCategoriesOpen((prev) => !prev)}
                 className={`text-[13px] tracking-wide transition-colors relative py-1 flex items-center gap-1.5 cursor-pointer font-semibold ${
                   isCategoriesOpen
-                    ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                    : "text-[#1c1917] hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-                } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+                    ? "text-[#c4622d] font-bold"
+                    : "text-[#1c1917] hover:text-[#c4622d]"
+                }`}
                 aria-expanded={isCategoriesOpen}
                 aria-haspopup="true"
               >
@@ -417,7 +408,7 @@ export function Navbar() {
               {/* Dropdown Menu Card (Style Vinillia) */}
               {isCategoriesOpen && (
                 <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
+                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
                   onMouseEnter={() => {
                     if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
                   }}
@@ -427,7 +418,7 @@ export function Navbar() {
                     }, 180);
                   }}
                 >
-                  <div className="bg-white rounded-2xl p-2 sm:p-2.5 min-w-[275px] sm:min-w-[290px] border border-[#EDE9E6] shadow-[0_20px_45px_-10px_rgba(0,0,0,0.14)] flex flex-col space-y-0.5">
+                  <div className="bg-white rounded-2xl p-1.5 sm:p-2 w-[225px] sm:w-[230px] border border-[#EDE9E6] shadow-[0_20px_45px_-10px_rgba(0,0,0,0.16)] flex flex-col space-y-0.5">
                     {navCategories.map((cat) => (
                       <Link
                         key={cat.slug}
@@ -435,13 +426,19 @@ export function Navbar() {
                         onClick={() => {
                           setIsCategoriesOpen(false);
                           setActiveSection("boutique");
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("marjad_category_selected", { detail: cat.slug })
+                            );
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
                         }}
-                        className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-[#FAF7F2] text-[13px] font-medium text-[#1c1917] hover:text-[#ba4e1a] transition-all duration-200 group cursor-pointer"
+                        className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-[#FAF7F2] text-[13px] font-medium text-[#1c1917] hover:text-[#ba4e1a] transition-all duration-200 group cursor-pointer"
                       >
-                        <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                        <span className="group-hover:translate-x-0.5 transition-transform duration-200 truncate">
                           {cat.name}
                         </span>
-                        <span className="text-[11.5px] text-[#8c827a] font-normal group-hover:text-[#ba4e1a] transition-colors ml-4">
+                        <span className="text-[11.5px] text-[#8c827a] font-normal group-hover:text-[#ba4e1a] transition-colors shrink-0 ml-2.5">
                           ({cat.count})
                         </span>
                       </Link>
@@ -453,13 +450,13 @@ export function Navbar() {
 
             {/* 4. À propos */}
             <Link
-              href="/#a-propos"
-              onClick={(e) => handleNavLinkClick(e, { id: "a-propos", href: "/#a-propos" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
-                pathname === "/" && activeSection === "a-propos"
-                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+              href="/a-propos"
+              onClick={(e) => handleNavLinkClick(e, { id: "a-propos", href: "/a-propos" })}
+              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
+                pathname === "/a-propos"
+                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
+                  : "text-[#1c1917] hover:text-[#c4622d]"
+              }`}
             >
               À propos
             </Link>
@@ -468,11 +465,11 @@ export function Navbar() {
             <Link
               href="/contact"
               onClick={(e) => handleNavLinkClick(e, { id: "contact", href: "/contact" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 ${
+              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
                 pathname === "/contact"
-                  ? "text-[#c4622d] font-bold after:w-full after:bg-[#c4622d]"
-                  : "text-[#1c1917] font-semibold hover:text-[#c4622d] after:w-0 hover:after:w-full after:bg-[#c4622d]/60"
-              } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:transition-all`}
+                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
+                  : "text-[#1c1917] hover:text-[#c4622d]"
+              }`}
             >
               Contact
             </Link>
@@ -550,7 +547,7 @@ export function Navbar() {
       {/* ================= FUSED HERO CARD & CONNECTOR NECK (Unified Solid Container) ================= */}
       {pathname === "/" && (
         <div
-          className={`fused-hero-card-container absolute -left-[1px] top-full w-full max-w-[385px] sm:max-w-[445px] lg:max-w-[485px] z-30 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`fused-hero-card-container absolute -left-[1px] top-full w-full max-w-[385px] sm:max-w-[445px] lg:max-w-[485px] z-20 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             !isFusedHero
               ? "opacity-0 -translate-y-8 scale-[0.96] pointer-events-none"
               : "opacity-100 translate-y-0 scale-100 pointer-events-auto"
@@ -801,6 +798,12 @@ export function Navbar() {
                     onClick={() => {
                       setMobileMenuOpen(false);
                       setMobileCategoriesOpen(false);
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(
+                          new CustomEvent("marjad_category_selected", { detail: cat.slug })
+                        );
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
                     }}
                     className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-[#1c1917] hover:bg-white hover:text-[#c4622d] transition-colors"
                   >
@@ -814,13 +817,13 @@ export function Navbar() {
 
           {/* À propos */}
           <Link
-            href="/#a-propos"
+            href="/a-propos"
             onClick={(e) => {
               setMobileMenuOpen(false);
-              handleNavLinkClick(e, { id: "a-propos", href: "/#a-propos" });
+              handleNavLinkClick(e, { id: "a-propos", href: "/a-propos" });
             }}
             className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              pathname === "/" && activeSection === "a-propos"
+              pathname === "/a-propos"
                 ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
                 : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
             }`}

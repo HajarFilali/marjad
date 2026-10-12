@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Plus_Jakarta_Sans, Playfair_Display, Amiri, Cinzel } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
@@ -58,7 +59,9 @@ export default function RootLayout({
       className={`${jakartaSans.variable} ${playfair.variable} ${cinzel.variable} ${amiri.variable} h-full scroll-smooth`}
     >
       <head>
-        <script
+        <Script
+          id="scroll-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var y=window.scrollY;var hasHash=!!window.location.hash;if(y>40||hasHash){document.documentElement.classList.add('is-scrolled-page');}else{document.documentElement.classList.remove('is-scrolled-page');}function saveY(){try{var sy=window.scrollY;sessionStorage.setItem('marjad_scrolled',String(sy));if(sy>40||!!window.location.hash){document.documentElement.classList.add('is-scrolled-page');}else if(sy<35&&!window.location.hash){document.documentElement.classList.remove('is-scrolled-page');}}catch(e){}}window.addEventListener('scroll',saveY,{passive:true});window.addEventListener('beforeunload',saveY);}catch(e){}})();`,
           }}

@@ -44,6 +44,49 @@ const SORT_OPTIONS = [
 
 const ITEMS_PER_PAGE = 9;
 
+function getMatchedCategorySlug(param: string | null): string {
+  if (!param) return "all";
+  const p = param.toLowerCase().trim();
+  const normP = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  if (normP === "all" || normP === "tous" || normP === "toute") {
+    return "all";
+  }
+
+  // Chercher uniquement parmi les vraies catégories (exclure "all")
+  const specificCategories = STORE_CATEGORIES.filter((c) => c.slug !== "all");
+
+  // 1. Correspondance exacte par slug ou id
+  const exactMatch = specificCategories.find(
+    (c) =>
+      c.slug.toLowerCase() === normP ||
+      c.id.toLowerCase() === normP
+  );
+  if (exactMatch) return exactMatch.slug;
+
+  // 2. Correspondance exacte par nom normalisé
+  const nameMatch = specificCategories.find(
+    (c) =>
+      c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normP
+  );
+  if (nameMatch) return nameMatch.slug;
+
+  // 3. Correspondance par inclusion sur les catégories spécifiques (jamais sur "all")
+  const subMatch = specificCategories.find((c) => {
+    const normSlug = c.slug.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normName = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return (
+      normSlug.includes(normP) ||
+      normP.includes(normSlug) ||
+      normName.includes(normP) ||
+      normP.includes(normName)
+    );
+  });
+  if (subMatch) return subMatch.slug;
+
+  return param;
+}
+
 function BoutiqueContent() {
   const searchParams = useSearchParams();
   const categoryParam =
@@ -52,7 +95,9 @@ function BoutiqueContent() {
     searchParams.get("cat");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>(() =>
+    getMatchedCategorySlug(categoryParam)
+  );
   const [maxBudget, setMaxBudget] = useState<number>(2500);
   const [selectedMaterial, setSelectedMaterial] = useState<string>("all");
   const [specialCollection, setSpecialCollection] = useState<string>("all");
@@ -64,26 +109,8 @@ function BoutiqueContent() {
   // Synchronisation dynamique du paramètre de catégorie depuis l'URL
   useEffect(() => {
     if (categoryParam) {
-      const p = categoryParam.toLowerCase().trim();
-      const normP = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const matched = STORE_CATEGORIES.find((c) => {
-        const normId = c.id.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const normSlug = c.slug.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const normName = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return (
-          normId === normP ||
-          normSlug === normP ||
-          normP.includes(normId) ||
-          normSlug.includes(normP) ||
-          normName.includes(normP) ||
-          normP.includes(normName)
-        );
-      });
-      if (matched) {
-        setSelectedCategory(matched.slug);
-      } else {
-        setSelectedCategory(categoryParam);
-      }
+      const slug = getMatchedCategorySlug(categoryParam);
+      setSelectedCategory(slug);
       // Réinitialiser les autres filtres pour ne voir que les créations de la catégorie demandée
       setSearchQuery("");
       setSelectedMaterial("all");
@@ -93,6 +120,26 @@ function BoutiqueContent() {
       setSelectedCategory("all");
     }
   }, [categoryParam]);
+
+  // Écoute de l'événement direct si la navigation se fait depuis la navbar sur la même page
+  useEffect(() => {
+    const handleCategoryEvent = (e: Event) => {
+      const custom = e as CustomEvent<string>;
+      if (custom.detail) {
+        const slug = getMatchedCategorySlug(custom.detail);
+        setSelectedCategory(slug);
+        setSearchQuery("");
+        setSelectedMaterial("all");
+        setSpecialCollection("all");
+        setCurrentPage(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("marjad_category_selected", handleCategoryEvent);
+    return () => {
+      window.removeEventListener("marjad_category_selected", handleCategoryEvent);
+    };
+  }, []);
 
   // Positionnement 100% FIXE du panneau de filtres avec symétrie parfaite des gaps (Haut = Bas)
   const asideRef = useRef<HTMLElement>(null);
@@ -358,30 +405,34 @@ function BoutiqueContent() {
             >
               
               {/* En-tête Filtres */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-[#ebd8be]/60">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#c4622d]/10 text-[#c4622d] flex items-center justify-center shrink-0">
+              <div className="pb-2 border-b border-[#ebd8be]/60">
+                {/* Ligne Titre & Description avec Icône (pleine largeur, chaque texte sur une seule ligne) */}
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-xl bg-[#c4622d]/10 text-[#c4622d] flex items-center justify-center shrink-0">
                     <SlidersHorizontal className="w-4 h-4 stroke-[2]" />
                   </div>
-                  <div>
-                    <h2 className="font-serif font-bold text-sm sm:text-base text-[#1c1917]">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-serif font-bold text-sm sm:text-[15px] text-[#1c1917] whitespace-nowrap leading-tight">
                       Filtres Les Créations
                     </h2>
-                    <p className="text-[10px] text-[#78716c] font-medium">
+                    <p className="text-[10px] sm:text-[10.5px] text-[#78716c] font-medium whitespace-nowrap leading-tight mt-0.5">
                       Affinez votre sélection MARJAD
                     </p>
                   </div>
                 </div>
 
+                {/* Bouton Réinitialiser calé complètement à droite avec gap réduit au-dessus et en-dessous */}
                 {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#c4622d] hover:text-[#9e461a] hover:bg-[#c4622d]/10 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Réinitialiser</span>
-                  </button>
+                  <div className="flex justify-end mt-1">
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10.5px] sm:text-[11px] font-semibold text-[#c4622d] hover:text-[#9e461a] hover:bg-[#c4622d]/10 rounded-lg transition-all cursor-pointer leading-tight"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.2]" />
+                      <span>Réinitialiser</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -546,11 +597,28 @@ function BoutiqueContent() {
 
               {/* Titre & Description de la Boutique */}
               <div className="mt-2.5 sm:mt-3">
-                <h1 className="text-xl sm:text-2xl font-serif font-black text-[#1c1917] tracking-tight">
-                  Boutique <span className="text-[#c4622d] italic">MARJAD</span>
-                </h1>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-serif font-black text-[#1c1917] tracking-tight">
+                    Boutique <span className="text-[#c4622d] italic">MARJAD</span>
+                  </h1>
+                  {selectedCategory !== "all" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ba4e1a]/10 text-[#ba4e1a] text-xs font-bold border border-[#ba4e1a]/20">
+                      <span>{STORE_CATEGORIES.find((c) => c.slug === selectedCategory)?.name || selectedCategory}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategory("all")}
+                        className="p-0.5 hover:bg-[#ba4e1a]/20 rounded-full transition-colors cursor-pointer"
+                        title="Voir toutes les catégories"
+                      >
+                        <X className="w-3 h-3 text-[#ba4e1a]" />
+                      </button>
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 text-xs text-[#78716c] font-medium leading-relaxed max-w-2xl">
-                  Explorez l&apos;intégralité de nos pièces d&apos;artisanat marocain d&apos;exception et créations 100% authentiques faites main.
+                  {selectedCategory !== "all"
+                    ? `Affichage exclusif des créations de la catégorie "${STORE_CATEGORIES.find((c) => c.slug === selectedCategory)?.name || selectedCategory}".`
+                    : "Explorez l'intégralité de nos pièces d'artisanat marocain d'exception et créations 100% authentiques faites main."}
                 </p>
               </div>
             </div>

@@ -62,7 +62,7 @@ export function PromoBar() {
 
   return (
     <div
-      className={`promo-bar-container fixed top-0 left-0 right-0 w-full bg-[#000000] text-[#ffffff] select-none z-50 border-b border-[#ebd8be]/15 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`promo-bar-container fixed top-0 left-0 right-0 w-full bg-[#000000] text-[#ffffff] select-none z-[101] border-b border-[#ebd8be]/15 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         !isVisible
           ? "opacity-0 -translate-y-full pointer-events-none"
           : "opacity-100 translate-y-0 pointer-events-auto"

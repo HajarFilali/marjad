@@ -178,7 +178,13 @@ function playSnapTone() {
   } catch {}
 }
 
-export default function AboutPuzzleShowcase() {
+interface AboutPuzzleShowcaseProps {
+  imageSrc?: string;
+}
+
+export default function AboutPuzzleShowcase({
+  imageSrc = "/images/about/about-salon-luxueux.jpg",
+}: AboutPuzzleShowcaseProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -611,7 +617,7 @@ export default function AboutPuzzleShowcase() {
                 {/* Clipped image for this piece */}
                 <g clipPath={`url(#puzzleClip_${p.c}_${p.r})`}>
                   <image
-                    href="/images/about/about-salon-luxueux.jpg"
+                    href={imageSrc}
                     x={X0}
                     y={Y0}
                     width={COLS * S}
@@ -681,7 +687,7 @@ export default function AboutPuzzleShowcase() {
                   {/* Clipped portion of the luxury salon on the floating piece */}
                   <g clipPath={`url(#puzzleClip_${p.c}_${p.r})`}>
                     <image
-                      href="/images/about/about-salon-luxueux.jpg"
+                      href={imageSrc}
                       x={X0}
                       y={Y0}
                       width={COLS * S}

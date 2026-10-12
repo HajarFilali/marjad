@@ -14,12 +14,18 @@ interface ProductCardProps {
   product: Product;
   variant?: "grid" | "list";
   disableLink?: boolean;
+  hideFavorite?: boolean;
+  hidePriceAndCart?: boolean;
+  customDescription?: string;
 }
 
 export function ProductCard({
   product,
   variant = "grid",
   disableLink = false,
+  hideFavorite = false,
+  hidePriceAndCart = false,
+  customDescription,
 }: ProductCardProps) {
   const { addItem, items } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -292,22 +298,24 @@ export function ProductCard({
             </span>
           )}
 
-          {/* Wishlist Heart Button */}
-          <button
-            onClick={handleToggleFavorite}
-            disabled={disableLink}
-            className={`absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-xs ${
-              disableLink
-                ? "bg-white/80 text-[#8c827a] cursor-default"
-                : isFav
-                ? "bg-white text-red-500 scale-105 shadow-sm cursor-pointer"
-                : "bg-white/85 hover:bg-white text-[#1c1917]/60 hover:text-red-500 hover:scale-110 cursor-pointer"
-            }`}
-            title={disableLink ? "Favoris" : isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
-            aria-label="Favoris"
-          >
-            <Heart className={`w-4 h-4 ${isFav && !disableLink ? "fill-red-500 text-red-500" : ""}`} />
-          </button>
+          {/* Wishlist Heart Button (Masqué si hideFavorite est actif) */}
+          {!hideFavorite && (
+            <button
+              onClick={handleToggleFavorite}
+              disabled={disableLink}
+              className={`absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-300 shadow-xs ${
+                disableLink
+                  ? "bg-white/80 text-[#8c827a] cursor-default"
+                  : isFav
+                  ? "bg-white text-red-500 scale-105 shadow-sm cursor-pointer"
+                  : "bg-white/85 hover:bg-white text-[#1c1917]/60 hover:text-red-500 hover:scale-110 cursor-pointer"
+              }`}
+              title={disableLink ? "Favoris" : isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+              aria-label="Favoris"
+            >
+              <Heart className={`w-4 h-4 ${isFav && !disableLink ? "fill-red-500 text-red-500" : ""}`} />
+            </button>
+          )}
 
           {/* Product Cutout Visual or Empty Upload State */}
           <div
@@ -342,8 +350,12 @@ export function ProductCard({
           </div>
         </div>
 
-        {/* 2. BOTTOM HALF: Category first, then Name, compact price & cart button */}
-        <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between bg-white border-t border-[#ebd8be]/40">
+        {/* 2. BOTTOM HALF: Category first, then Name, compact price & cart button OR rich narrative description */}
+        <div
+          className={`p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white border-t border-[#ebd8be]/40 ${
+            hidePriceAndCart ? "min-h-[145px] sm:min-h-[160px]" : ""
+          }`}
+        >
           <div>
             <span className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-widest text-[#ba4e1a] block mb-1">
               {product.category?.trim() ? (
@@ -363,51 +375,60 @@ export function ProductCard({
                 </span>
               )}
             </h3>
+
+            {/* Description détaillée sur la page À Propos */}
+            {hidePriceAndCart && (
+              <p className="mt-2.5 text-xs sm:text-[13px] text-[#57534e] leading-relaxed line-clamp-4 font-normal">
+                {customDescription || product.shortDescription || product.description}
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center justify-between mt-2.5 pt-0">
-            <div className="flex items-baseline gap-1.5 sm:gap-2">
-              <span className="text-[15px] sm:text-base font-extrabold text-[#1c1917]">
-                {product.price && product.price > 0 ? (
-                  formatPrice(product.price)
-                ) : (
-                  <span className="text-[#a8a29e] font-sans font-semibold text-xs">
-                    — MAD
+          {!hidePriceAndCart && (
+            <div className="flex items-center justify-between mt-2.5 pt-0">
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                <span className="text-[15px] sm:text-base font-extrabold text-[#1c1917]">
+                  {product.price && product.price > 0 ? (
+                    formatPrice(product.price)
+                  ) : (
+                    <span className="text-[#a8a29e] font-sans font-semibold text-xs">
+                      — MAD
+                    </span>
+                  )}
+                </span>
+                {hasPromo && product.originalPrice && product.originalPrice > 0 && (
+                  <span className="text-xs sm:text-[12.5px] font-semibold text-[#8c827a] line-through">
+                    {formatPrice(product.originalPrice)}
                   </span>
                 )}
-              </span>
-              {hasPromo && product.originalPrice && product.originalPrice > 0 && (
-                <span className="text-xs sm:text-[12.5px] font-semibold text-[#8c827a] line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
-            </div>
+              </div>
 
-            {/* Bouton Panier (Bloqué / Gris si déjà dans le panier ou si mode preview) */}
-            <button
-              onClick={handleAddToCart}
-              disabled={disableLink || inCart}
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-xs ${
-                disableLink
-                  ? "bg-[#f5f1eb] text-[#8c827a] border border-[#ebd8be] cursor-default opacity-80"
-                  : inCart
-                  ? "bg-[#e5e5e5] text-[#737373] border border-[#d4d4d4] cursor-not-allowed opacity-85"
-                  : isJustAdded
-                  ? "bg-emerald-600 text-white scale-105 cursor-pointer"
-                  : "bg-[#1c1917] hover:bg-[#ba4e1a] active:scale-95 text-white hover:shadow-md cursor-pointer"
-              }`}
-              title={disableLink ? "Aperçu de la création" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
-              aria-label={disableLink ? "Aperçu" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
-            >
-              {inCart ? (
-                <Check className="w-3.5 h-3.5 text-[#525252] stroke-[2.5]" />
-              ) : isJustAdded ? (
-                <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
-              ) : (
-                <ShoppingBag className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-              )}
-            </button>
-          </div>
+              {/* Bouton Panier (Bloqué / Gris si déjà dans le panier ou si mode preview) */}
+              <button
+                onClick={handleAddToCart}
+                disabled={disableLink || inCart}
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-xs ${
+                  disableLink
+                    ? "bg-[#f5f1eb] text-[#8c827a] border border-[#ebd8be] cursor-default opacity-80"
+                    : inCart
+                    ? "bg-[#e5e5e5] text-[#737373] border border-[#d4d4d4] cursor-not-allowed opacity-85"
+                    : isJustAdded
+                    ? "bg-emerald-600 text-white scale-105 cursor-pointer"
+                    : "bg-[#1c1917] hover:bg-[#ba4e1a] active:scale-95 text-white hover:shadow-md cursor-pointer"
+                }`}
+                title={disableLink ? "Aperçu de la création" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
+                aria-label={disableLink ? "Aperçu" : inCart ? "Déjà dans le panier" : "Ajouter au panier"}
+              >
+                {inCart ? (
+                  <Check className="w-3.5 h-3.5 text-[#525252] stroke-[2.5]" />
+                ) : isJustAdded ? (
+                  <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                ) : (
+                  <ShoppingBag className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </GridCardWrapper>
     </TiltedCard>
