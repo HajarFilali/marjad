@@ -146,9 +146,50 @@ export default function AProposPage() {
   const activeCardIndexRef = useRef(0);
   activeCardIndexRef.current = activeCardIndex;
 
+  // Référence et progression du scroll pour le Hero Mediast-Style
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [scrollP, setScrollP] = useState(0);
+
+  useEffect(() => {
+    if (heroVideoRef.current) {
+      heroVideoRef.current.play().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const el = heroSectionRef.current;
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const totalScrollable = el.offsetHeight - window.innerHeight;
+            if (totalScrollable > 0) {
+              const scrolled = -rect.top;
+              const p = Math.min(Math.max(scrolled / totalScrollable, 0), 1);
+              setScrollP(p);
+            }
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+
   // État de direction de navigation pour le bouton unique sous les cartes :
-  // - "down" : quand l'utilisateur descend depuis Maître Artisan -> "Passer à la suite"
-  // - "up" : quand l'utilisateur remonte depuis les Gestes d'Atelier -> "Remonter au Fondateur"
+  // - "down" : quand l'utilisateur descend -> "Passer à la suite"
+  // - "up" : quand l'utilisateur remonte -> "Remonter en haut"
   const [navDirection, setNavDirection] = useState<"down" | "up">("down");
   const lastScrollY = useRef(0);
 
@@ -172,8 +213,8 @@ export default function AProposPage() {
   }, []);
 
   // Écouteur de molette (wheel) fluide sur la zone des cartes :
-  // Fait défiler les 5 cartes (0 -> 1 -> 2 -> 3 -> 4) sans agrandir le gap avec la section supérieure.
-  // Quand on atteint la fin ou le début, le scroll naturel de la page prend le relais.
+  // Défile les cartes SEULEMENT quand la section et le bouton "Passer à la suite" sont bien visibles à l'écran.
+  // Quand on scroll pour entrer dans la section ou quand on a fini les cartes, le scroll naturel de la page n'est jamais bloqué.
   useEffect(() => {
     const container = cardsContainerRef.current;
     if (!container) return;
@@ -181,29 +222,56 @@ export default function AProposPage() {
     let lastWheelTime = 0;
 
     const handleWheel = (e: WheelEvent) => {
-      const now = Date.now();
+      // Ignorer les micro-variations ou inerties faibles
+      if (Math.abs(e.deltaY) < 16) return;
+
+      const viewportHeight = window.innerHeight;
+      const rect = container.getBoundingClientRect();
+      const btn = document.getElementById("btn-passer-suite") || document.getElementById("btn-passer-container");
+      const btnRect = btn ? btn.getBoundingClientRect() : null;
+
       const currentIdx = activeCardIndexRef.current;
+      const now = Date.now();
 
       if (e.deltaY > 0) {
         setNavDirection("down");
-        // Scroll vers le bas
-        if (currentIdx < STACKED_CARDS.length - 1) {
+
+        // Pour intercepter et changer les cartes en descendant (01 -> 05) :
+        // Le bouton "Passer à la suite" DOIT être visible dans le viewport,
+        // et le haut de la section doit être convenablement engagé dans l'écran.
+        const isButtonInView = btnRect
+          ? btnRect.bottom <= viewportHeight + 25
+          : rect.bottom <= viewportHeight + 30;
+        const isTopEngaged = rect.top <= 140;
+        const isFullyFramed = isButtonInView && isTopEngaged;
+
+        if (isFullyFramed && currentIdx < STACKED_CARDS.length - 1) {
           e.preventDefault();
-          if (now - lastWheelTime > 260) {
+          if (now - lastWheelTime > 300) {
             lastWheelTime = now;
             setActiveCardIndex((prev) => Math.min(STACKED_CARDS.length - 1, prev + 1));
           }
         }
+        // Si le bouton n'est pas encore visible ou si on a atteint la dernière carte (05) :
+        // Aucun blocage -> le scroll naturel de la page continue librement vers le bas !
       } else if (e.deltaY < 0) {
         setNavDirection("up");
-        // Scroll vers le haut
-        if (currentIdx > 0) {
+
+        // Pour intercepter et remonter les cartes en montant (05 -> 01) :
+        // Le haut de la section doit être visible (pas scrollé hors de l'écran vers le haut).
+        const isTopInView = rect.top >= -25;
+        const isBottomStillVisible = rect.bottom >= viewportHeight * 0.35;
+        const isFullyFramed = isTopInView && isBottomStillVisible;
+
+        if (isFullyFramed && currentIdx > 0) {
           e.preventDefault();
-          if (now - lastWheelTime > 260) {
+          if (now - lastWheelTime > 300) {
             lastWheelTime = now;
             setActiveCardIndex((prev) => Math.max(0, prev - 1));
           }
         }
+        // Si le haut n'est pas encore visible ou si on est à la première carte (01) :
+        // Aucun blocage -> le scroll naturel vers le haut remonte vers le hero !
       }
     };
 
@@ -212,10 +280,12 @@ export default function AProposPage() {
   }, []);
 
   // Fonctions de saut direct (Passer directement à la suite ou Remonter)
-  const scrollToArtisan = () => {
-    const el = document.getElementById("section-artisan");
+  const scrollToMaison = () => {
+    const el = document.getElementById("section-maison");
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -226,170 +296,247 @@ export default function AProposPage() {
     }
   };
 
+  // Calculs géométriques et cinématiques pour l'effet Mediast
+  const vInset = (23 * (1 - scrollP)).toFixed(2);
+  const hInset = (28 * (1 - scrollP)).toFixed(2);
+  const radius = (28 * (1 - scrollP)).toFixed(1);
+  const zoom = (1 + 0.3 * (1 - scrollP)).toFixed(3);
+  const clipPathValue = `inset(${vInset}% ${hInset}% ${vInset}% ${hInset}% round ${radius}px)`;
+
   return (
     <div className="bg-[#ffffff] min-h-screen">
       {/* ========================================================================= */}
-      {/* 1. TOP HERO : MAÂLEM SAÏD (IMAGE À GAUCHE & PRÉSENTATION UX ÉPURÉE)       */}
+      {/* 1. TOP HERO : EXPANSION CINÉMATIQUE SUR FOND BLANC • MAISON MARJAD         */}
       {/* ========================================================================= */}
       <section
-        id="section-artisan"
-        className="bg-white min-h-[100dvh] pt-[104px] sm:pt-[112px] flex flex-col justify-center"
+        id="section-maison"
+        ref={heroSectionRef}
+        className="relative bg-white text-[#1c1917] -mt-[44px] sm:-mt-[48px]"
+        style={{ minHeight: "260vh" }}
       >
-        <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-6 sm:py-8 lg:py-0">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-center w-full">
-            
-            {/* GAUCHE (lg:col-span-5) : Portrait dans le Cadre Ovale Sculpté en Bois Marron */}
-            <div className="lg:col-span-5 flex justify-center items-center">
-              <div className="relative w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[400px] xl:max-w-[430px] mx-auto transition-transform duration-500 hover:scale-[1.015]">
-                <Image
-                  src="/mallem-said-portrait-v3.png"
-                  alt="Maâlem Saïd • Artisan Fondateur MARJAD"
-                  width={842}
-                  height={1024}
-                  priority
-                  className="w-auto h-auto max-h-[440px] sm:max-h-[470px] lg:max-h-[490px] xl:max-h-[510px] object-contain mx-auto select-none"
-                />
-              </div>
+        <div className="sticky top-0 h-[100dvh] w-full overflow-hidden bg-white">
+          
+          {/* Motifs Filigranes Arabesques du Logo MARJAD en Arrière-Plan */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden select-none transition-opacity duration-300"
+            style={{ opacity: Math.max(0, 1 - scrollP * 1.8) }}
+          >
+            {/* 1. Haut Gauche (Ajusté en taille & Visible) */}
+            <div className="absolute -top-7 -left-7 lg:-top-9 lg:-left-9 w-36 h-36 sm:w-44 sm:h-44 lg:w-56 lg:h-56 opacity-[0.19] sm:opacity-[0.21] rotate-[-12deg] transition-transform duration-500">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={224}
+                height={224}
+                className="w-full h-full object-contain"
+              />
             </div>
 
-            {/* DROITE (lg:col-span-7) : Présentation d'Excellence & Informations Clients */}
-            <div className="lg:col-span-7 space-y-3 sm:space-y-3.5 text-left">
-              
-              {/* Badge Fondateur */}
-              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#fbf5ee] border border-[#b34718]/40 text-[#b34718] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
-                <svg
-                  className="w-3 h-3 text-[#b34718]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-                  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-                </svg>
-                <span>MAÎTRE ARTISAN • ATELIER MEKNÈS</span>
-              </div>
-
-              {/* Titre Principal (Tailles Affinées & Équilibrées) */}
-              <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-serif font-black text-[#1c1917] tracking-tight leading-[1.18]">
-                Maâlem Saïd, <br />
-                <span className="text-[#b34718] italic font-normal font-serif text-lg sm:text-xl lg:text-[23px] block mt-0.5">
-                  Maître du Bois Noble &amp; du Laiton
-                </span>
-              </h1>
-
-              {/* Séparateur avec Emblème Officiel du Logo MARJAD au Centre */}
-              <div className="flex items-center gap-3.5 py-1 max-w-xl">
-                <div className="h-[1.5px] sm:h-[2px] flex-1 bg-[#d4a853] rounded-full" />
-                <Image
-                  src="/moroccan-logo-symbol.png"
-                  alt="Emblème MARJAD"
-                  width={36}
-                  height={36}
-                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0"
-                />
-                <div className="h-[1.5px] sm:h-[2px] flex-1 bg-[#d4a853] rounded-full" />
-              </div>
-
-              {/* Récit avec Détails Artisanaux */}
-              <div className="space-y-2 text-[#292524] text-xs sm:text-[13px] leading-relaxed max-w-xl">
-                <p>
-                  Au cœur de la cité impériale de <strong className="text-[#1c1917] font-bold">Meknès, Maâlem Saïd</strong> perpétue plus de trente ans de tabletterie d&apos;art. Chaque création MARJAD est sculptée individuellement à la main dans son atelier, perpétuant les gestes ancestraux de la sculpture sur bois.
-                </p>
-                <p>
-                  Travaillant exclusivement le <strong className="text-[#1c1917] font-bold">cèdre de l&apos;Atlas</strong> et le <strong className="text-[#1c1917] font-bold">noyer massif</strong>, il incruste le laiton avec une précision d&apos;orfèvre pour créer des pièces d&apos;exception qui traversent le temps.
-                </p>
-              </div>
-
-              {/* 2 Cartes de Détails Artisanaux */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 max-w-xl">
-                <div className="p-3 sm:p-3.5 rounded-2xl bg-[#fcf7f1] border border-[#ebd8be] flex items-center gap-3 hover:border-[#b34718]/50 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-[#f4e4d6] flex items-center justify-center shrink-0">
-                    <svg
-                      className="w-4.5 h-4.5 text-[#b34718]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-                      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-                    </svg>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs sm:text-[12px] font-serif font-bold text-[#1c1917]">
-                      100% Fait Main à Meknès
-                    </p>
-                    <p className="text-[10px] sm:text-[10.5px] text-[#66615b] mt-0.5 leading-snug">
-                      Sculpté au ciseau dans son atelier, chaque pièce est unique et signée.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 sm:p-3.5 rounded-2xl bg-[#fcf7f1] border border-[#ebd8be] flex items-center gap-3 hover:border-[#b34718]/50 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-[#f4e4d6] flex items-center justify-center shrink-0">
-                    <svg
-                      className="w-4.5 h-4.5 text-[#b34718]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M6 3h12l4 6-10 12L2 9l4-6z" />
-                      <path d="M11 3 8 9l4 12 4-12-3-6" />
-                      <path d="M2 9h20" />
-                    </svg>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs sm:text-[12px] font-serif font-bold text-[#1c1917]">
-                      Bois Nobles &amp; Laiton Massif
-                    </p>
-                    <p className="text-[10px] sm:text-[10.5px] text-[#66615b] mt-0.5 leading-snug">
-                      Cèdre odorant et noyer naturel. Zéro plastique, zéro résine.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Boutons d'Action Rapides */}
-              <div className="flex flex-wrap items-center justify-start gap-3 pt-1">
-                <Link
-                  href="/boutique"
-                  className="px-5 py-2.5 sm:px-6 sm:py-3 bg-[#b34718] hover:bg-[#963a12] text-white text-xs sm:text-[12.5px] font-serif font-bold rounded-full transition-all shadow-md shadow-[#b34718]/25 hover:shadow-lg flex items-center gap-2 cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 text-white stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                    <path d="M3 6h18" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                  <span>Découvrir la Boutique</span>
-                  <svg className="w-3.5 h-3.5 text-white stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M5 12h14" />
-                    <path d="m12 5 7 7-7 7" />
-                  </svg>
-                </Link>
-                <a
-                  href="https://wa.me/212654321098?text=Bonjour%20MARJAD%2C%20je%20souhaite%20contacter%20l%27atelier%20de%20Ma%C3%A2lem%20Sa%C3%AFd"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-2.5 sm:px-6 sm:py-3 bg-[#fbf7f2] hover:bg-white border border-[#b34718] text-[#1c1917] hover:text-[#b34718] text-xs sm:text-[12.5px] font-serif font-bold rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-2xs hover:shadow-sm"
-                >
-                  <svg className="w-3.5 h-3.5 text-[#b34718] stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                  </svg>
-                  <span>Contacter l&apos;Atelier</span>
-                </a>
-              </div>
-
+            {/* 2. Haut Droite (Léger & Discret comme initialement) */}
+            <div className="absolute -top-10 -right-10 lg:-top-14 lg:-right-14 w-44 h-44 sm:w-56 sm:h-56 lg:w-72 lg:h-72 opacity-[0.055] rotate-[15deg]">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={288}
+                height={288}
+                className="w-full h-full object-contain"
+              />
             </div>
 
+            {/* 3. Au-dessus du média, incliné vers la Gauche (Léger & Subtil) */}
+            <div className="absolute top-[8%] sm:top-[10%] left-[16%] sm:left-[22%] lg:left-[24%] w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 opacity-[0.065] sm:opacity-[0.075] rotate-[-8deg]">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={176}
+                height={176}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* 4. En-dessous du média, incliné vers la Droite (Léger & Subtil) */}
+            <div className="absolute bottom-[8%] sm:bottom-[10%] right-[16%] sm:right-[22%] lg:right-[24%] w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 opacity-[0.065] sm:opacity-[0.075] rotate-[14deg]">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={176}
+                height={176}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* 5. Bas Gauche (Léger & Discret comme initialement) */}
+            <div className="absolute -bottom-10 -left-10 lg:-bottom-12 lg:-left-12 w-40 h-40 sm:w-52 sm:h-52 lg:w-64 lg:h-64 opacity-[0.05] rotate-[45deg]">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={256}
+                height={256}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* 6. Bas Droite (Ajusté en taille & Visible) */}
+            <div className="absolute -bottom-7 -right-7 lg:-bottom-9 lg:-right-9 w-32 h-32 sm:w-40 sm:h-40 lg:w-52 lg:h-52 opacity-[0.19] sm:opacity-[0.21] rotate-[-20deg] transition-transform duration-500">
+              <Image
+                src="/moroccan-logo-symbol.png"
+                alt=""
+                width={208}
+                height={208}
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
+
+          {/* Côté Gauche : Savoir-Faire & Signature Maâlem Saïd (Bespoke MARJAD) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-6 lg:left-12 top-1/2 -translate-y-1/2 z-20 hidden md:flex flex-col items-start gap-2.5 transition-opacity duration-200 select-none"
+            style={{ opacity: Math.max(0, 1 - scrollP * 2.2) }}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.26em] text-[#8c6d48] font-bold">
+              Atelier d&apos;Art
+            </span>
+            <p className="font-serif text-sm lg:text-base text-[#1c1917] font-semibold leading-snug max-w-[190px]">
+              Façonné à la main par Maâlem Saïd
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="h-px w-8 bg-gradient-to-r from-[#c4622d] to-transparent" />
+              <span className="text-[11px] text-[#78716c] font-light">Meknès, Maroc</span>
+            </div>
+          </div>
+
+          {/* Côté Droit : Art de Vivre & Pièces Uniques (Bespoke MARJAD) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-6 lg:right-12 top-1/2 -translate-y-1/2 z-20 hidden md:flex flex-col items-end text-right gap-2.5 transition-opacity duration-200 select-none"
+            style={{ opacity: Math.max(0, 1 - scrollP * 2.2) }}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.26em] text-[#8c6d48] font-bold">
+              Matières Nobles
+            </span>
+            <p className="font-serif text-sm lg:text-base text-[#1c1917] font-semibold leading-snug max-w-[190px]">
+              Cèdre sauvage de l&apos;Atlas &amp; Noyer pur
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-[11px] text-[#78716c] font-light">Sculpture en relief</span>
+              <div className="h-px w-8 bg-gradient-to-l from-[#d4a853] to-transparent" />
+            </div>
+          </div>
+
+          {/* Conteneur Média avec Clip-Path Dynamique & Effet d'Ouverture */}
+          <div
+            className="absolute inset-0 [will-change:clip-path]"
+            style={{
+              clipPath: clipPathValue,
+              filter: scrollP < 0.92 ? "drop-shadow(0 20px 45px rgba(28,25,23,0.14))" : "none",
+            }}
+          >
+            {/* Vidéo d'Arrière-Plan de l'Atelier / Maison MARJAD avec Effet de Zoom & Loop */}
+            <div
+              className="absolute inset-0 [will-change:transform]"
+              style={{ transform: `scale(${zoom})` }}
+            >
+              <video
+                ref={heroVideoRef}
+                src="/videos/vvvv.mp4"
+                poster="/hero-moroccan-salon.webp"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className="h-full w-full object-cover select-none pointer-events-none"
+              />
+            </div>
+
+            {/* Gradient d'Ambiance pour Contraste & Élégance */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(20,18,16,0.92) 0%, rgba(20,18,16,0.72) 42%, rgba(20,18,16,0.25) 75%, rgba(20,18,16,0.15) 100%), linear-gradient(to top, rgba(20,18,16,0.92) 0%, rgba(20,18,16,0.3) 50%, transparent 100%)",
+                opacity: Math.min(1, Math.max(0.18, scrollP * 1.3)),
+              }}
+            />
+
+            {/* Contenu Dévoilé après Ouverture Plein Écran (Scroll >= 0.45) */}
+            <div
+              className="absolute inset-0 flex flex-col justify-end transition-opacity duration-300"
+              style={{
+                opacity: Math.max(0, (scrollP - 0.45) / 0.55),
+                pointerEvents: scrollP > 0.55 ? "auto" : "none",
+              }}
+            >
+              <div className="mx-auto w-full max-w-7xl px-6 sm:px-10 pb-[clamp(32px,8vh,80px)] text-white">
+                <p className="font-mono text-[10px] sm:text-xs font-bold uppercase tracking-[0.24em] text-[#d4a853]">
+                  Bois Noble · Laiton Massif · Geste Ancestral
+                </p>
+
+                <h1 className="mt-3 sm:mt-4 text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-serif font-black text-white leading-[1.18] tracking-tight max-w-3xl">
+                  Faites entrer la beauté du Maroc <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e2b768] via-[#d4a853] to-[#c4622d]">
+                    dans votre intérieur.
+                  </span>
+                </h1>
+
+                <div className="my-4 sm:my-5 h-[3px] w-[76px] bg-[#c4622d] rounded-full" />
+
+                <p className="max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-white/80">
+                  Née de la passion pour le bois noble et les gestes séculaires, la Maison MARJAD imagine des créations d&apos;exception sculptées à la main par <strong className="text-white font-bold">Maâlem Saïd</strong> dans son atelier impérial à Meknès. Des pièces uniques qui allient tradition marocaine et art de vivre contemporain.
+                </p>
+
+                {/* Boutons d'Action */}
+                <div className="mt-6 sm:mt-7 flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/boutique"
+                    className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-xs sm:text-sm font-bold bg-[#c4622d] hover:bg-[#9e461a] text-white transition-all shadow-lg shadow-[#c4622d]/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-white" />
+                    <span>Explorer la Boutique</span>
+                    <ArrowRight className="w-4 h-4 text-white" />
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-xs sm:text-sm font-bold border border-white/25 hover:border-white/60 bg-[#141210]/60 hover:bg-[#141210] text-white transition-all backdrop-blur-xs hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-[#d4a853]" />
+                    <span>Demande Sur-Mesure / Contact</span>
+                  </Link>
+                </div>
+
+                {/* Réassurance Livraison & Échange */}
+                <div className="mt-5 sm:mt-6 flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-white/60">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-[#c4622d]" />
+                    <span>Livraison Sécurisée Partout au Maroc</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 text-[#c4622d]" />
+                    <span>Garantie Remplacement Anti-Casse</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Indication Défiler pour explorer */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2.5 select-none transition-opacity duration-150"
+            style={{ opacity: Math.max(0, 1 - scrollP * 2.8) }}
+          >
+            <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.28em] text-[#8c6d48]">
+              <span className="h-px w-6 bg-[#c4622d]/40" />
+              <span>Défiler pour explorer</span>
+              <span className="h-px w-6 bg-[#c4622d]/40" />
+            </div>
+            <div className="w-5 h-8 rounded-full border border-[#8c6d48]/40 flex justify-center pt-1.5">
+              <span className="w-1 h-2 rounded-full bg-[#c4622d] animate-bounce" />
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -399,7 +546,7 @@ export default function AProposPage() {
       <section
         id="section-essentiel"
         ref={cardsContainerRef}
-        className="relative z-10 isolate bg-white pt-16 sm:pt-24 lg:pt-28 pb-10 sm:pb-12 lg:pb-13"
+        className="relative z-10 isolate bg-white pt-8 sm:pt-12 lg:pt-14 pb-8 sm:pb-10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
@@ -566,9 +713,10 @@ export default function AProposPage() {
               </div>
 
               {/* Bouton Dynamique Unique sous les cartes */}
-              <div className="w-full max-w-lg lg:max-w-xl flex justify-end items-center mt-3.5 px-1">
+              <div id="btn-passer-container" className="w-full max-w-lg lg:max-w-xl flex justify-end items-center mt-3.5 px-1">
                 {navDirection === "down" ? (
                   <button
+                    id="btn-passer-suite"
                     type="button"
                     onClick={scrollToGestes}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fbf5ee] hover:bg-[#ba4e1a] text-[#ba4e1a] hover:text-white border border-[#ba4e1a]/30 text-xs font-bold transition-all duration-300 shadow-2xs hover:shadow-xs cursor-pointer group"
@@ -579,13 +727,14 @@ export default function AProposPage() {
                   </button>
                 ) : (
                   <button
+                    id="btn-passer-suite"
                     type="button"
-                    onClick={scrollToArtisan}
+                    onClick={scrollToMaison}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fbf5ee] hover:bg-[#ba4e1a] text-[#ba4e1a] hover:text-white border border-[#ba4e1a]/30 text-xs font-bold transition-all duration-300 shadow-2xs hover:shadow-xs cursor-pointer group"
-                    title="Remonter vers la présentation du Fondateur"
+                    title="Remonter vers la présentation Maison MARJAD"
                   >
                     <ArrowUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
-                    <span>Remonter au Fondateur</span>
+                    <span>Remonter en haut</span>
                   </button>
                 )}
               </div>
@@ -650,73 +799,7 @@ export default function AProposPage() {
         </div>
       </section>
 
-      {/* ========================================================================= */}
-      {/* 4. SECTION MAISON MARJAD • MEKNÈS (PRÉSENTATION & EMPLACEMENT VIDÉO)     */}
-      {/* ========================================================================= */}
-      <section className="bg-white pt-4 sm:pt-6 pb-16 sm:pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
-            {/* GAUCHE (Partie Left) : Invitation & Récit Concis sur la Maison MARJAD */}
-            <div className="lg:col-span-6 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ba4e1a]/10 border border-[#ba4e1a]/20 text-[#ba4e1a] text-xs font-bold uppercase tracking-widest">
-                <Award className="w-3.5 h-3.5 text-[#ba4e1a]" />
-                <span>Maison MARJAD • Meknès</span>
-              </div>
 
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-[#1c1917] leading-[1.2]">
-                Faites Entrer la Beauté du Maroc <br />
-                <span className="text-[#ba4e1a]">dans Votre Intérieur</span>
-              </h2>
-
-              <p className="text-xs sm:text-sm text-[#44403c] leading-relaxed">
-                Née de la passion pour le bois noble et les gestes séculaires, la Maison MARJAD imagine des créations d&apos;exception sculptées à la main par <strong className="text-[#1c1917]">Maâlem Saïd</strong> dans son atelier impérial à Meknès. Des pièces uniques qui allient tradition marocaine et art de vivre contemporain.
-              </p>
-
-              {/* Boutons d'Action */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <Link
-                  href="/boutique"
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#ba4e1a] to-[#9c3a0c] hover:from-[#9c3a0c] hover:to-[#822f08] text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-[#ba4e1a]/25 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
-                >
-                  <ShoppingBag className="w-4 h-4 text-white" />
-                  <span>Explorer la Boutique</span>
-                  <ArrowRight className="w-4 h-4 text-white" />
-                </Link>
-                <Link
-                  href="/contact"
-                  className="px-5 py-2.5 bg-white border border-[#ebd8be] hover:border-[#ba4e1a] text-[#1c1917] hover:text-[#ba4e1a] font-bold text-xs sm:text-sm rounded-xl transition-all hover:bg-[#faf7f2] flex items-center gap-2 cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4 text-[#ba4e1a]" />
-                  <span>Demande Sur-Mesure / Contact</span>
-                </Link>
-              </div>
-
-              {/* Réassurance livraison & échange */}
-              <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[#78716c]">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-[#ba4e1a]" />
-                  <span>Livraison Sécurisée Partout au Maroc</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RotateCcw className="w-3.5 h-3.5 text-[#ba4e1a]" />
-                  <span>Garantie Remplacement Anti-Casse</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DROITE (Partie Right) : Cadre Réservé pour la Vidéo (Fond Blanc, Bordure Marron & Arrondi) */}
-            <div className="lg:col-span-6">
-              <div className="relative w-full aspect-square sm:aspect-[4/3] rounded-3xl bg-white border-2 border-[#b84d19]/40 shadow-xs flex items-center justify-center overflow-hidden">
-                {/* Cadre vidéo réservé - prêt pour l'intégration du salon marocain */}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
     </div>
   );
 }

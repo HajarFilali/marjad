@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -43,12 +43,29 @@ const cityOptions = MOROCCAN_CITIES.map((c) => ({
   icon: MapPin,
 }));
 
+export interface DetailColorItem {
+  id: string;
+  name: string;
+  label?: string;
+  hex?: string;
+  bgHex?: string;
+  accentHex?: string;
+  bgGradient?: string;
+  textColor?: string;
+  dimensions?: string;
+  imageUrl?: string;
+  imageIndex?: number;
+}
+
 // Couleurs de calligraphie et finitions métallisées de l'atelier
-export const PRODUCT_COLORS = [
+export const PRODUCT_COLORS: DetailColorItem[] = [
   {
     id: "dore",
     name: "Doré",
     label: "Or Impérial (Doré)",
+    hex: "#D4AF37",
+    bgHex: "#1C1917",
+    accentHex: "#D4AF37",
     bgGradient: "bg-gradient-to-tr from-[#996515] via-[#D4AF37] to-[#F5D77F]",
     textColor: "text-[#D4AF37]",
   },
@@ -56,6 +73,9 @@ export const PRODUCT_COLORS = [
     id: "argente",
     name: "Argenté",
     label: "Argent Miroir (Argenté)",
+    hex: "#D1D5DB",
+    bgHex: "#1C1917",
+    accentHex: "#D1D5DB",
     bgGradient: "bg-gradient-to-tr from-[#6B7280] via-[#D1D5DB] to-[#F9FAFB]",
     textColor: "text-stone-400",
   },
@@ -63,6 +83,9 @@ export const PRODUCT_COLORS = [
     id: "noir-or",
     name: "Noir & Or",
     label: "Noir Mat & Liseré Or",
+    hex: "#1C1917",
+    bgHex: "#1C1917",
+    accentHex: "#D4AF37",
     bgGradient: "bg-gradient-to-tr from-[#000000] via-[#1C1917] to-[#D4AF37]",
     textColor: "text-[#1C1917]",
   },
@@ -118,7 +141,47 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   const inCart = items.some((item) => String(item.product.id) === String(product.id));
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState(PRODUCT_COLORS[0]);
+
+  // Couleurs dynamiques du produit (détectées lors de l'ajout dans l'admin) ou palette par défaut
+  const availableColors: DetailColorItem[] = useMemo(() => {
+    if (product.colors && product.colors.length > 0) {
+      return product.colors.map((c) => ({
+        id: c.id,
+        name: c.name,
+        label: c.name,
+        hex: c.hex,
+        bgHex: c.bgHex,
+        accentHex: c.accentHex,
+        bgGradient: c.bgGradient || "",
+        textColor: c.textColor || "text-[#1c1917]",
+        dimensions: c.dimensions,
+        imageUrl: c.imageUrl,
+        imageIndex: c.imageIndex,
+      }));
+    }
+    return PRODUCT_COLORS;
+  }, [product.colors]);
+
+  const [selectedColor, setSelectedColor] = useState(availableColors[0]);
+
+  useEffect(() => {
+    if (availableColors.length > 0) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors]);
+
+  const currentDimensions =
+    selectedColor?.dimensions ||
+    product.details?.dimensions ||
+    "75 cm × 28 cm";
+
+  const activeProductImage =
+    selectedColor?.imageUrl ||
+    (selectedColor?.imageIndex !== undefined && product.images?.[selectedColor.imageIndex]) ||
+    product.images?.[0] ||
+    (product as any).image ||
+    "/decor-honeycomb-calligraphy.webp";
+
   const [selectedFinish, setSelectedFinish] = useState("Dorure Or Fin 24k");
   const [activeTab, setActiveTab] = useState<"specs" | "installation">("specs");
   const [addedAnimation, setAddedAnimation] = useState(false);
@@ -489,7 +552,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                       }}
                     >
                       <Image
-                        src={product.images[0]}
+                        src={activeProductImage}
                         alt={product.name}
                         width={720}
                         height={400}
@@ -637,7 +700,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                 <span className="inline-flex items-center gap-2 text-xs font-bold text-[#8c6b51] bg-white px-3.5 py-1.5 rounded-xl border border-[#ebd8be] shadow-2xs">
                   <Ruler className="w-3.5 h-3.5 text-[#ba4e1a]" />
                   <span>
-                    Dimensions : <strong className="text-[#1c1917]">{product.details?.dimensions || "75 cm × 28 cm"}</strong>
+                    Dimensions : <strong className="text-[#1c1917]">{currentDimensions}</strong>
                   </span>
                 </span>
               </div>
@@ -701,36 +764,43 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                   Couleur :
                 </span>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  {PRODUCT_COLORS.map((col) => {
+                  {availableColors.map((col) => {
                     const isSelected = selectedColor.id === col.id;
+                    const bgLeft = col.bgHex || (col.id === "noir-or" ? "#1C1917" : col.id === "argente" ? "#1C1917" : "#3E2723");
+                    const accentRight = col.accentHex || (col.id === "noir-or" ? "#D4AF37" : col.id === "argente" ? "#D1D5DB" : col.hex || "#D4AF37");
+                    const splitBackground = `linear-gradient(90deg, ${bgLeft} 0%, ${bgLeft} 50%, ${accentRight} 50%, ${accentRight} 100%)`;
+                    const isLightHex =
+                      col.hex &&
+                      (col.hex.toLowerCase() === "#ffffff" ||
+                        col.hex.toLowerCase() === "#f5f3ef" ||
+                        col.id === "blanc");
                     return (
                       <button
                         key={col.id}
                         type="button"
                         onClick={() => {
                           setSelectedColor(col);
-                          setSelectedFinish(col.label);
+                          setSelectedFinish(col.label || col.name);
                         }}
                         title={col.name}
-                        className={`group relative w-8 h-8 rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center shadow-2xs ${
-                          col.bgGradient
-                        } ${
+                        style={{ background: splitBackground }}
+                        className={`group relative w-8 h-8 rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center shadow-2xs overflow-hidden ${
                           isSelected
                             ? "ring-2 ring-[#ba4e1a] scale-105 shadow-sm"
-                            : "border border-black/10 hover:scale-110 hover:shadow-xs"
+                            : "border border-black/15 hover:scale-110 hover:shadow-xs"
                         }`}
                       >
                         {isSelected && (
                           <Check
-                            className={`w-3.5 h-3.5 ${
-                              col.id === "argente" ? "text-stone-900" : "text-white"
+                            className={`w-3.5 h-3.5 drop-shadow-sm ${
+                              isLightHex ? "text-stone-900" : "text-white"
                             }`}
                           />
                         )}
 
                         {/* Floating tooltip on hover */}
                         <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none bg-[#1c1917] text-white text-[10.5px] font-bold py-1 px-2.5 rounded-md whitespace-nowrap shadow-lg z-30">
-                          {col.name}
+                          {col.name} {col.dimensions ? `(${col.dimensions})` : ""}
                           <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-0.5 border-4 border-transparent border-t-[#1c1917]" />
                         </span>
                       </button>
@@ -1022,7 +1092,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                       <dl className="space-y-2 text-xs sm:text-sm">
                         <div className="flex justify-between border-b border-[#ebd8be]/40 pb-1.5">
                           <dt className="text-[#1c1917]/70 font-medium">Dimensions</dt>
-                          <dd className="font-bold text-[#1c1917]">{product.details?.dimensions || "Format d'apparat"}</dd>
+                          <dd className="font-bold text-[#1c1917]">{currentDimensions || "Format d'apparat"}</dd>
                         </div>
                         <div className="flex justify-between border-b border-[#ebd8be]/40 pb-1.5">
                           <dt className="text-[#1c1917]/70 font-medium">Matériaux nobles</dt>

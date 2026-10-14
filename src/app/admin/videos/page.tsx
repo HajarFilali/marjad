@@ -22,7 +22,6 @@ import {
   UploadCloud,
   X,
   Link as LinkIcon,
-  Video as VideoIcon,
   ShoppingBag,
 } from "lucide-react";
 
@@ -37,37 +36,55 @@ function AdminVideosContent() {
   const [editingVideo, setEditingVideo] = useState<AdminTrendingVideo | null>(null);
 
   // Form states
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("@marjad_officiel");
   const [selectedProductId, setSelectedProductId] = useState<string | number>("1");
   const [uploadMode, setUploadMode] = useState<"url" | "file">("url");
   const [videoUrl, setVideoUrl] = useState("");
-  const [thumbnail, setThumbnail] = useState("");
+  const [videoFileName, setVideoFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Synchronize with LocalStorage and external update events
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("marjad_admin_videos");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setVideos(parsed);
+    const loadVideos = () => {
+      try {
+        const stored = localStorage.getItem("marjad_admin_videos");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setVideos(parsed);
+          } else {
+            localStorage.setItem("marjad_admin_videos", JSON.stringify(INITIAL_ADMIN_VIDEOS));
+            setVideos(INITIAL_ADMIN_VIDEOS);
+          }
+        } else {
+          localStorage.setItem("marjad_admin_videos", JSON.stringify(INITIAL_ADMIN_VIDEOS));
+          setVideos(INITIAL_ADMIN_VIDEOS);
         }
-      }
-      const storedProds = localStorage.getItem("marjad_admin_products");
-      if (storedProds) {
-        const parsedP = JSON.parse(storedProds);
-        if (Array.isArray(parsedP) && parsedP.length > 0) {
-          setProducts(parsedP);
+
+        const storedProds = localStorage.getItem("marjad_admin_products");
+        if (storedProds) {
+          const parsedP = JSON.parse(storedProds);
+          if (Array.isArray(parsedP) && parsedP.length > 0) {
+            setProducts(parsedP);
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    };
+
+    loadVideos();
+    const handleUpdate = () => loadVideos();
+    window.addEventListener("marjad_videos_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("marjad_videos_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
   }, []);
 
   const saveVideos = (updated: AdminTrendingVideo[]) => {
     setVideos(updated);
     try {
       localStorage.setItem("marjad_admin_videos", JSON.stringify(updated));
+      window.dispatchEvent(new Event("marjad_videos_updated"));
     } catch {}
   };
 
@@ -99,57 +116,54 @@ function AdminVideosContent() {
 
   const handleProductSelect = (id: string) => {
     setSelectedProductId(id);
-    const p = products.find((it) => String(it.id) === id);
-    if (p) {
-      if (!thumbnail || thumbnail === "/images/products/prod-tapis.jpg") {
-        setThumbnail(p.image);
-      }
-      if (!editingVideo) {
-        setTitle(`Fabrication artisanale : ${p.name}`);
-      }
-    }
   };
 
   const openCreateModal = () => {
     setEditingVideo(null);
     const prod = products[0];
-    setTitle(prod ? `Fabrication artisanale : ${prod.name}` : "Démonstration Atelier");
-    setAuthor("@marjad_officiel");
     setSelectedProductId(prod?.id || "1");
+    setUploadMode("url");
     setVideoUrl("");
-    setThumbnail(prod?.image || "/images/products/prod-tapis.jpg");
+    setVideoFileName("");
     setIsModalOpen(true);
   };
 
   const openEditModal = (video: AdminTrendingVideo) => {
     setEditingVideo(video);
-    setTitle(video.title);
-    setAuthor(video.author);
     setSelectedProductId(video.productId || "1");
     setVideoUrl(video.videoUrl || "");
-    setThumbnail(video.thumbnail);
+    setUploadMode(
+      video.videoUrl && !video.videoUrl.startsWith("http") && !video.videoUrl.startsWith("/")
+        ? "file"
+        : "url"
+    );
+    setVideoFileName("");
     setIsModalOpen(true);
   };
 
   const handleSaveVideo = (e: React.FormEvent) => {
     e.preventDefault();
     const prod = selectedProduct;
-    const finalTitle = title.trim() || `Création d'Atelier : ${prod?.name}`;
-    const finalThumbnail = thumbnail.trim() || prod?.image || "/images/products/prod-tapis.jpg";
-    const finalPrice = `${prod?.price || 1500} DH`;
+    const finalProductName = prod?.name || "Création Artisanale";
+    const finalCategory = prod?.categoryName || "Artisanat d'exception";
+    const finalTitle = `Fabrication artisanale : ${finalProductName}`;
+    const finalThumbnail = prod?.image || "/images/products/prod-tapis.jpg";
+    const finalPrice = `${prod?.price || 1200} DH`;
+    const finalVideoUrl = videoUrl.trim() || "/pinterest_video.mp4";
 
     if (editingVideo) {
       const updated = videos.map((v) =>
         v.id === editingVideo.id
           ? {
               ...v,
-              title: finalTitle,
+              title: v.title || finalTitle,
               productId: prod?.id,
-              productName: prod?.name || v.productName,
+              productName: finalProductName,
+              category: finalCategory,
               productSlug: prod?.slug || v.productSlug,
-              productImage: prod?.image || v.productImage,
+              productImage: finalThumbnail,
               price: finalPrice,
-              videoUrl: videoUrl.trim(),
+              videoUrl: finalVideoUrl,
               thumbnail: finalThumbnail,
             }
           : v
@@ -157,22 +171,25 @@ function AdminVideosContent() {
       saveVideos(updated);
       addAdminNotification({
         title: "Vidéo Modifiée",
-        desc: `${finalTitle} a été mise à jour.`,
+        desc: `${finalProductName} a été mise à jour.`,
         type: "video",
       });
     } else {
       const newVideo: AdminTrendingVideo = {
         id: `vid-${Date.now()}`,
         title: finalTitle,
-        author: author || "@marjad_officiel",
-        views: "Viral",
-        likes: "15k",
+        author: "@marjad_officiel",
+        customerName: "@marjad_officiel",
+        city: "Atelier Marjad",
+        views: "Nouveau",
+        likes: "0",
         productId: prod?.id,
-        productName: prod?.name || "Artisanat Marjad",
+        productName: finalProductName,
+        category: finalCategory,
         productSlug: prod?.slug || "artisanat",
-        productImage: prod?.image || "/images/products/prod-tapis.jpg",
+        productImage: finalThumbnail,
         price: finalPrice,
-        videoUrl: videoUrl.trim(),
+        videoUrl: finalVideoUrl,
         thumbnail: finalThumbnail,
         active: true,
         dateAdded: new Date().toISOString().split("T")[0],
@@ -180,7 +197,7 @@ function AdminVideosContent() {
       saveVideos([newVideo, ...videos]);
       addAdminNotification({
         title: "Nouvelle Vidéo Publiée",
-        desc: `Vidéo associée à ${prod?.name} ajoutée au flux.`,
+        desc: `Vidéo associée à ${finalProductName} ajoutée au flux.`,
         type: "video",
       });
     }
@@ -192,12 +209,17 @@ function AdminVideosContent() {
     if (confirm("Voulez-vous vraiment supprimer cette vidéo d'artisanat ?")) {
       const updated = videos.filter((v) => v.id !== id);
       saveVideos(updated);
+      addAdminNotification({
+        title: "Vidéo Supprimée",
+        desc: "La vidéo a été retirée du flux.",
+        type: "video",
+      });
     }
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-7 space-y-6 max-w-[1680px] w-full mx-auto">
-      {/* Top Header matching Vinillia */}
+      {/* Top Header matching Vinilia */}
       <AdminHeader
         title="Vidéos de l'Atelier & Démonstrations"
         subtitle="Supervisez le flux vidéo viral de la maison d'artisanat et associez vos créations vedettes."
@@ -215,14 +237,14 @@ function AdminVideosContent() {
       {/* Videos Count Bar */}
       <div className="bg-white py-2.5 px-4 rounded-2xl border border-[#EDE9E6] shadow-2xs flex items-center justify-between">
         <span className="text-xs text-[#6B7280]">
-          Affichage de <span className="font-bold text-[#1F2937]">{videos.length}</span> vidéos et démonstrations en atelier
+          Affichage de <span className="font-bold text-[#1F2937]">{videos.length}</span> vidéos synchronisées avec la boutique
         </span>
         <span className="text-xs font-bold text-[#ba4e1a] bg-[#ba4e1a]/10 px-2.5 py-0.5 rounded-full">
           Reels Verticaux 9:16
         </span>
       </div>
 
-      {/* Video Reels Grid matching Vinillia */}
+      {/* Video Reels Grid matching Vinilia */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {videos.map((video) => {
           const isHighlighted = highlightedId === video.id;
@@ -265,8 +287,8 @@ function AdminVideosContent() {
 
               {/* Top Bar: Action Buttons (Modifier & Supprimer) */}
               <div className="relative z-10 p-4 flex items-center justify-between">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-md border border-white/20">
-                  {video.author}
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-md border border-white/20">
+                  {video.author || "@marjad_officiel"}
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -296,11 +318,13 @@ function AdminVideosContent() {
                 </div>
               </div>
 
-              {/* Bottom Card Content */}
+              {/* Bottom Card Content with Product Info: Category top, Name below, Price */}
               <div className="relative z-10 p-4 space-y-3">
-                <p className="text-xs font-semibold text-white/95 line-clamp-2 leading-snug drop-shadow-md">
-                  {video.title}
-                </p>
+                {video.title && (
+                  <p className="text-xs font-semibold text-white/95 line-clamp-2 leading-snug drop-shadow-md">
+                    {video.title}
+                  </p>
+                )}
 
                 {/* Tagged Product Box */}
                 <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/80 flex items-center gap-3 min-w-0">
@@ -314,10 +338,16 @@ function AdminVideosContent() {
                     />
                   </div>
                   <div className="min-w-0 flex-1 space-y-0.5">
+                    {/* 1. Catégorie en haut */}
+                    <p className="text-[10px] text-[#ba4e1a] font-bold uppercase tracking-wider truncate">
+                      {video.category || matchedProd?.categoryName || "Artisanat d'exception"}
+                    </p>
+                    {/* 2. Nom du produit sous la catégorie */}
                     <p className="font-serif text-xs font-bold text-[#1F2937] truncate" title={video.productName}>
                       {video.productName}
                     </p>
-                    <p className="text-xs font-extrabold text-[#ba4e1a] whitespace-nowrap">
+                    {/* 3. Prix */}
+                    <p className="text-xs font-extrabold text-[#1F2937] whitespace-nowrap">
                       {video.price}
                     </p>
                   </div>
@@ -328,10 +358,10 @@ function AdminVideosContent() {
         })}
       </div>
 
-      {/* LUXURY 2-COLUMN MODAL AJOUT / MODIFICATION VIDÉO (Matching Vinillia standard) */}
+      {/* LUXURY 2-COLUMN MODAL AJOUT / MODIFICATION VIDÉO (Formulaire style Vinilia) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-[32px] max-w-4xl w-full max-h-[92vh] flex flex-col border border-[#E9DCD5] shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="bg-white rounded-[32px] max-w-3xl w-full max-h-[92vh] flex flex-col border border-[#E9DCD5] shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
             {/* Close Button Top Right */}
             <button
               type="button"
@@ -359,41 +389,26 @@ function AdminVideosContent() {
 
               <form id="video-form" onSubmit={handleSaveVideo} className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  {/* LEFT COLUMN: Paramètres du Reel & Produit Associé (Col 6) */}
+                  {/* LEFT COLUMN: Compte Officiel bloqué + Sélecteur Produit + Fiche Produit (Col 6) */}
                   <div className="lg:col-span-6 space-y-4">
-                    {/* Compte Officiel TikTok / Réseaux */}
+                    {/* Compte Officiel bloqué */}
                     <div>
                       <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                        Compte Officiel / Auteur
+                        Compte Officiel
                       </label>
                       <input
                         type="text"
-                        value={author}
-                        onChange={(e) => setAuthor(e.target.value)}
-                        placeholder="@marjad_officiel"
-                        className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-3.5 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition font-medium"
+                        value="@marjad_officiel"
+                        disabled
+                        readOnly
+                        className="w-full bg-[#FAF6F4]/70 border border-[#E9DCD5] rounded-xl px-3.5 py-2.5 text-xs text-[#6B7280] font-medium cursor-not-allowed select-none focus:outline-none"
                       />
                     </div>
 
-                    {/* Titre du Reel */}
+                    {/* Sélectionner le produit */}
                     <div>
                       <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                        Titre de la vidéo / Description *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Ex: Tissage d'un Tapis Beni Ourain à la main"
-                        className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-3.5 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition font-medium"
-                      />
-                    </div>
-
-                    {/* Taguer une création artisanale du catalogue */}
-                    <div>
-                      <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                        Taguer une création artisanale du catalogue *
+                        Sélectionner le produit *
                       </label>
                       <CustomSelect
                         value={String(selectedProductId)}
@@ -405,52 +420,44 @@ function AdminVideosContent() {
                       />
                     </div>
 
-                    {/* Tagged Product Live Preview Box (Matching Vinillia) */}
+                    {/* Fiche Produit sans background beige extérieur */}
                     {selectedProduct && (
-                      <div className="bg-[#FAF7F2] rounded-2xl p-4 border border-[#E9DCD5] space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-[#6d381e]">
-                          <span className="flex items-center gap-1.5">
-                            <ShoppingBag className="w-3.5 h-3.5 text-[#ba4e1a]" />
-                            Aperçu de la création liée
-                          </span>
-                          <span className="text-[10px] bg-[#ba4e1a]/10 text-[#ba4e1a] px-2 py-0.5 rounded-full font-bold">
-                            Affiché sur la vidéo
-                          </span>
+                      <div className="bg-white rounded-2xl p-3.5 border border-[#EDE9E6] flex items-center gap-3.5 shadow-2xs">
+                        <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-[#E9DCD5] relative flex items-center justify-center p-1 shadow-2xs">
+                          <Image
+                            src={selectedProduct.image || "/images/products/prod-tapis.jpg"}
+                            alt={selectedProduct.name}
+                            fill
+                            className="object-contain p-0.5"
+                            sizes="56px"
+                          />
                         </div>
-                        <div className="bg-white rounded-xl p-3 border border-[#EDE9E6] flex items-center gap-3 shadow-2xs">
-                          <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-[#E9DCD5] relative flex items-center justify-center p-1 shadow-2xs">
-                            <Image
-                              src={selectedProduct.image || "/images/products/prod-tapis.jpg"}
-                              alt={selectedProduct.name}
-                              fill
-                              className="object-contain p-0.5"
-                              sizes="56px"
-                            />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-serif text-xs font-bold text-[#1F2937] truncate">
-                              {selectedProduct.name}
-                            </p>
-                            <p className="text-[11px] text-[#6B7280]">
-                              {selectedProduct.categoryName || "Artisanat d'exception"}
-                            </p>
-                            <p className="text-xs font-extrabold text-[#ba4e1a] mt-0.5">
-                              {selectedProduct.price} DH
-                            </p>
-                          </div>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          {/* 1. Catégorie en haut */}
+                          <p className="text-[10px] font-bold text-[#ba4e1a] uppercase tracking-wider truncate">
+                            {selectedProduct.categoryName || "Artisanat d'exception"}
+                          </p>
+                          {/* 2. Nom du produit sous la catégorie */}
+                          <p className="font-serif text-xs font-bold text-[#1F2937] truncate" title={selectedProduct.name}>
+                            {selectedProduct.name}
+                          </p>
+                          {/* 3. Prix */}
+                          <p className="text-xs font-extrabold text-[#1F2937]/90 mt-0.5">
+                            {selectedProduct.price} DH
+                          </p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* RIGHT COLUMN: Source Vidéo & Miniature (Col 6) */}
+                  {/* RIGHT COLUMN: Source Vidéo (Tabs: Lien URL vidéo ou Fichier vidéo) (Col 6) */}
                   <div className="lg:col-span-6 space-y-4">
-                    {/* Mode d'intégration de la vidéo (Pill tabs toggle) */}
+                    {/* Tabs Switch */}
                     <div>
                       <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                        Source du contenu vidéo *
+                        Source de la vidéo *
                       </label>
-                      <div className="bg-[#FAF6F4] p-1 rounded-full border border-[#E9DCD5] grid grid-cols-2 gap-1">
+                      <div className="bg-[#FAF6F4] p-1 rounded-full border border-[#E9DCD5] grid grid-cols-2 gap-1 mb-3">
                         <button
                           type="button"
                           onClick={() => setUploadMode("url")}
@@ -461,7 +468,7 @@ function AdminVideosContent() {
                           }`}
                         >
                           <LinkIcon className="w-3.5 h-3.5" />
-                          <span>Lien URL Vidéo</span>
+                          <span>Lien URL vidéo</span>
                         </button>
                         <button
                           type="button"
@@ -473,20 +480,22 @@ function AdminVideosContent() {
                           }`}
                         >
                           <UploadCloud className="w-3.5 h-3.5" />
-                          <span>Fichier Vidéo</span>
+                          <span>Fichier vidéo</span>
                         </button>
                       </div>
                     </div>
 
+                    {/* When Lien URL vidéo is selected: only show URL input */}
                     {uploadMode === "url" ? (
                       <div>
                         <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                          URL directe de la vidéo (MP4 / Web)
+                          Lien URL de la vidéo *
                         </label>
                         <div className="relative flex items-center">
                           <LinkIcon className="w-3.5 h-3.5 text-neutral-400 absolute left-3.5 pointer-events-none" />
                           <input
                             type="url"
+                            required={uploadMode === "url"}
                             value={videoUrl}
                             onChange={(e) => setVideoUrl(e.target.value)}
                             placeholder="https://... (Lien MP4, TikTok ou vidéo)"
@@ -495,9 +504,10 @@ function AdminVideosContent() {
                         </div>
                       </div>
                     ) : (
+                      /* When Fichier vidéo is selected: only show File Dropzone */
                       <div>
                         <label className="block font-bold text-[#1F2937] mb-1.5 text-xs">
-                          Importer un fichier MP4 / MOV depuis votre appareil
+                          Importer un fichier vidéo *
                         </label>
                         <input
                           ref={fileInputRef}
@@ -509,93 +519,34 @@ function AdminVideosContent() {
                             if (f) {
                               const url = URL.createObjectURL(f);
                               setVideoUrl(url);
+                              setVideoFileName(f.name);
                             }
                           }}
                         />
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-full py-5 border-2 border-dashed border-[#E9DCD5] hover:border-[#6d381e] rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#FAF6F4] hover:bg-[#FAF7F2] text-[#6d381e] cursor-pointer transition p-4 text-center"
+                          className="w-full py-7 border-2 border-dashed border-[#E9DCD5] hover:border-[#6d381e] rounded-2xl flex flex-col items-center justify-center gap-2 bg-[#FAF6F4] hover:bg-[#FAF7F2] text-[#6d381e] cursor-pointer transition p-4 text-center"
                         >
                           <div className="w-10 h-10 rounded-full bg-[#ba4e1a]/10 flex items-center justify-center text-[#ba4e1a]">
                             <UploadCloud className="w-5 h-5" />
                           </div>
                           <div>
                             <span className="font-bold text-xs block text-[#1F2937]">
-                              {videoUrl ? "Fichier vidéo prêt à être publié" : "Cliquez pour téléverser votre vidéo"}
+                              {videoFileName ? videoFileName : "Cliquez pour importer votre fichier vidéo"}
                             </span>
                             <span className="text-[10px] text-[#6B7280]">
-                              Format 9:16 vertical recommandé (MP4, WebM)
+                              Format vertical (MP4, MOV, WebM)
                             </span>
                           </div>
                         </div>
                       </div>
                     )}
-
-                    {/* Image de couverture / Miniature */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="font-bold text-[#1F2937] text-xs">
-                          Image de couverture / Miniature
-                        </label>
-                        {selectedProduct && (
-                          <button
-                            type="button"
-                            onClick={() => setThumbnail(selectedProduct.image)}
-                            className="text-[10px] text-[#ba4e1a] hover:underline font-semibold cursor-pointer"
-                          >
-                            Utiliser la photo du produit
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={thumbnail}
-                        onChange={(e) => setThumbnail(e.target.value)}
-                        placeholder="/images/products/prod-tapis.jpg"
-                        className="w-full bg-[#FAF6F4] border border-[#E9DCD5] rounded-xl px-3.5 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition font-mono text-[11px]"
-                      />
-                    </div>
-
-                    {/* Live Video / Poster Preview */}
-                    <div className="bg-[#FAF7F2] rounded-2xl p-3 border border-[#E9DCD5] flex items-center gap-3">
-                      <div className="w-14 h-20 bg-black rounded-lg overflow-hidden relative shrink-0 border border-[#E9DCD5]">
-                        {videoUrl ? (
-                          <video
-                            src={videoUrl}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="w-full h-full object-cover"
-                          />
-                        ) : thumbnail ? (
-                          <Image
-                            src={thumbnail}
-                            alt="Miniature"
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/50">
-                            <VideoIcon className="w-5 h-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-[#1F2937]">
-                          Aperçu du rendu vertical (9:16)
-                        </p>
-                        <p className="text-[10px] text-[#6B7280] line-clamp-2 mt-0.5">
-                          {videoUrl ? "Flux vidéo actif en boucle" : "Miniature statique prête pour les visiteurs"}
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </form>
             </div>
 
-            {/* Modal Footer Pinned */}
+            {/* Modal Footer Pinned: Annuler & Publier la vidéo */}
             <div className="px-6 sm:px-8 py-4 bg-[#FAF7F2] border-t border-[#E9DCD5] flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
@@ -609,7 +560,7 @@ function AdminVideosContent() {
                 form="video-form"
                 className="px-7 py-2.5 rounded-xl bg-[#6d381e] hover:bg-[#542a15] text-white text-xs font-bold shadow-md shadow-[#6d381e]/25 transition cursor-pointer hover:scale-[1.02] active:scale-95"
               >
-                {editingVideo ? "Mettre à jour la vidéo" : "Enregistrer la vidéo"}
+                {editingVideo ? "Enregistrer la vidéo" : "Publier la vidéo"}
               </button>
             </div>
           </div>

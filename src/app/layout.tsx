@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Plus_Jakarta_Sans, Playfair_Display, Amiri, Cinzel } from "next/font/google";
+import localFont from "next/font/local";
+import { Plus_Jakarta_Sans, Amiri } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -9,23 +10,44 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { WishlistDrawer } from "@/components/cart/WishlistDrawer";
+import { MetaPixel } from "@/components/common/MetaPixel";
 
+// 1. Font Principal (Français) : Georgia Regular & Bold
+const georgia = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Georgia-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Georgia-Italic.ttf",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "../../public/fonts/Georgia-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Georgia-BoldItalic.ttf",
+      weight: "700",
+      style: "italic",
+    },
+  ],
+  variable: "--font-georgia",
+  display: "swap",
+});
+
+// 2. Font Secondaire Complémentaire (Modern UI / Sans-serif) : Plus Jakarta Sans
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-});
-
-const cinzel = Cinzel({
-  variable: "--font-cinzel",
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-});
-
+// 3. Font Arabe (En attente du choix de l'utilisateur) : Amiri
 const amiri = Amiri({
   variable: "--font-arabic",
   weight: ["400", "700"],
@@ -56,7 +78,7 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${jakartaSans.variable} ${playfair.variable} ${cinzel.variable} ${amiri.variable} h-full scroll-smooth`}
+      className={`${georgia.variable} ${jakartaSans.variable} ${amiri.variable} h-full scroll-smooth`}
     >
       <head>
         <Script
@@ -81,6 +103,8 @@ export default function RootLayout({
             <CartDrawer />
             {/* Interactive Wishlist Drawer */}
             <WishlistDrawer />
+            {/* Dynamic Meta Pixel Script */}
+            <MetaPixel />
           </WishlistProvider>
         </CartProvider>
       </body>

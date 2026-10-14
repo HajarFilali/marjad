@@ -95,17 +95,19 @@ export function ProductCard({
         <CardWrapper {...(wrapperProps as any)}>
         {/* LA PARTIE LEFT : Dimensions EXACTES de l'encadré image de la grille 3 colonnes (Largeur ~285-290px, Hauteur 235px) */}
         <div className="relative w-full sm:w-[285px] lg:w-[290px] h-[220px] sm:h-auto sm:min-h-[235px] shrink-0 flex items-center justify-center p-5 bg-gradient-to-b from-[#faf6f0] via-[#f7efe6]/70 to-[#f5ece1]/40 overflow-hidden">
-          {/* Fond salon au hover */}
-          <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-600 ease-out pointer-events-none overflow-hidden">
-            <Image
-              src="/images/salon-card-hover.webp"
-              alt="Salon marocain d'ambiance"
-              fill
-              sizes="(max-width: 640px) 100vw, 300px"
-              className="object-cover object-[center_35%] transition-transform duration-700 ease-out group-hover:scale-103"
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/15 transition-colors" />
-          </div>
+          {/* Fond salon au hover (Actif UNIQUEMENT si une vraie image est renseignée) */}
+          {hasImage && (
+            <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-600 ease-out pointer-events-none overflow-hidden">
+              <Image
+                src="/images/salon-card-hover.webp"
+                alt="Salon marocain d'ambiance"
+                fill
+                sizes="(max-width: 640px) 100vw, 300px"
+                className="object-cover object-[center_35%] transition-transform duration-700 ease-out group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/15 transition-colors" />
+            </div>
+          )}
 
           {/* Badge Promo */}
           {hasPromo && product.discountPercent && product.price > 0 && (
@@ -114,12 +116,14 @@ export function ProductCard({
             </span>
           )}
 
-          {/* Visuel du produit avec taille et comportement strictement identiques aux cartes 3 colonnes */}
+          {/* Visuel du produit (L'animation de recul ne s'active QUE si une image existe) */}
           <div
             className={`relative w-full h-full flex items-center justify-center z-10 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              isTallPiece
-                ? "group-hover:scale-[0.30] group-hover:-translate-y-[26px]"
-                : "group-hover:scale-55 group-hover:-translate-y-8"
+              hasImage
+                ? isTallPiece
+                  ? "group-hover:scale-[0.30] group-hover:-translate-y-[26px]"
+                  : "group-hover:scale-55 group-hover:-translate-y-8"
+                : ""
             }`}
           >
             {hasImage ? (
@@ -137,7 +141,7 @@ export function ProductCard({
                   <ImageIcon className="w-5 h-5 text-[#ba4e1a]/40" />
                 </div>
                 <span className="text-[10.5px] font-semibold text-[#8c827a]">
-                  Aucune image
+                  Aucune photo sélectionnée
                 </span>
               </div>
             )}
@@ -152,8 +156,8 @@ export function ProductCard({
               {product.category?.trim() ? (
                 product.category
               ) : (
-                <span className="text-[#a8a29e]/60 font-normal italic normal-case tracking-normal text-[10px]">
-                  Catégorie
+                <span className="text-[#a8a29e]/60 font-medium tracking-widest text-[11px]">
+                  ···
                 </span>
               )}
             </span>
@@ -163,8 +167,8 @@ export function ProductCard({
               {product.name?.trim() ? (
                 product.name
               ) : (
-                <span className="text-[#a8a29e] font-sans font-normal text-xs italic">
-                  Titre de la création...
+                <span className="text-[#a8a29e]/60 font-serif font-medium tracking-widest text-base">
+                  ···
                 </span>
               )}
             </h3>
@@ -191,8 +195,8 @@ export function ProductCard({
                 {product.price && product.price > 0 ? (
                   formatPrice(product.price)
                 ) : (
-                  <span className="text-[#a8a29e] font-sans font-semibold text-xs">
-                    — MAD
+                  <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-widest">
+                    ··· MAD
                   </span>
                 )}
               </span>
@@ -279,17 +283,19 @@ export function ProductCard({
       <GridCardWrapper {...(gridWrapperProps as any)}>
         {/* 1. TOP HALF: Product visual with interactive Salon Room hover simulation */}
         <div className="relative w-full h-[220px] sm:h-[235px] flex items-center justify-center p-5 bg-gradient-to-b from-[#faf6f0] via-[#f7efe6]/70 to-[#f5ece1]/40 overflow-hidden">
-          {/* Photorealistic Salon Room Background (Fades in smoothly on hover) */}
-          <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-600 ease-out pointer-events-none overflow-hidden">
-            <Image
-              src="/images/salon-card-hover.webp"
-              alt="Salon marocain d'ambiance"
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover object-[center_35%] transition-transform duration-700 ease-out group-hover:scale-103"
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/15 transition-colors" />
-          </div>
+          {/* Photorealistic Salon Room Background (Actif UNIQUEMENT si une vraie image est renseignée) */}
+          {hasImage && (
+            <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-600 ease-out pointer-events-none overflow-hidden">
+              <Image
+                src="/images/salon-card-hover.webp"
+                alt="Salon marocain d'ambiance"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover object-[center_35%] transition-transform duration-700 ease-out group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/15 transition-colors" />
+            </div>
+          )}
 
           {/* Promo Badge if discount exists */}
           {hasPromo && product.discountPercent && product.price > 0 && (
@@ -317,12 +323,14 @@ export function ProductCard({
             </button>
           )}
 
-          {/* Product Cutout Visual or Empty Upload State */}
+          {/* Product Cutout Visual or Empty Upload State (Animation active UNIQUEMENT si hasImage) */}
           <div
             className={`relative w-full h-full flex items-center justify-center z-10 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              isTallPiece
-                ? "group-hover:scale-[0.30] group-hover:-translate-y-[26px]"
-                : "group-hover:scale-55 group-hover:-translate-y-8"
+              hasImage
+                ? isTallPiece
+                  ? "group-hover:scale-[0.30] group-hover:-translate-y-[26px]"
+                  : "group-hover:scale-55 group-hover:-translate-y-8"
+                : ""
             }`}
           >
             {hasImage ? (
@@ -340,10 +348,10 @@ export function ProductCard({
                   <ImageIcon className="w-6 h-6 text-[#ba4e1a]/40" />
                 </div>
                 <span className="text-[11px] font-semibold text-[#8c827a] tracking-wide">
-                  Aucune image
+                  Aucune photo sélectionnée
                 </span>
                 <span className="text-[9px] text-[#a8a29e] mt-0.5">
-                  Renseignez la photo studio
+                  Importez une photo dans le formulaire
                 </span>
               </div>
             )}
@@ -361,8 +369,8 @@ export function ProductCard({
               {product.category?.trim() ? (
                 product.category
               ) : (
-                <span className="text-[#a8a29e]/60 font-normal italic normal-case tracking-normal text-[10px]">
-                  Catégorie
+                <span className="text-[#a8a29e]/60 font-medium tracking-widest text-[11px]">
+                  ···
                 </span>
               )}
             </span>
@@ -370,8 +378,8 @@ export function ProductCard({
               {product.name?.trim() ? (
                 product.name
               ) : (
-                <span className="text-[#a8a29e] font-sans font-normal text-xs italic">
-                  Titre de la pièce...
+                <span className="text-[#a8a29e]/60 font-serif font-medium tracking-widest text-sm">
+                  ···
                 </span>
               )}
             </h3>
@@ -391,8 +399,8 @@ export function ProductCard({
                   {product.price && product.price > 0 ? (
                     formatPrice(product.price)
                   ) : (
-                    <span className="text-[#a8a29e] font-sans font-semibold text-xs">
-                      — MAD
+                    <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-widest">
+                      ··· MAD
                     </span>
                   )}
                 </span>

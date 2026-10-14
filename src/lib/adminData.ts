@@ -1,4 +1,4 @@
-import { DECOR_PRODUCTS, CATEGORIES as DEFAULT_CATEGORIES } from "@/data/mockProducts";
+import { DECOR_PRODUCTS, CATEGORIES as DEFAULT_CATEGORIES, PRODUCTS } from "@/data/mockProducts";
 import { Product, Category } from "@/types/product";
 
 export interface AdminProduct {
@@ -24,6 +24,28 @@ export interface AdminProduct {
   artisanCity?: string;
   material?: string;
   dimensions?: string;
+  dimensionsList?: string[];
+  colors?: {
+    id: string;
+    name: string;
+    hex: string;
+    bgHex?: string;
+    accentHex?: string;
+    bgGradient?: string;
+    textColor?: string;
+    dimensions?: string;
+    imageIndex?: number;
+    imageUrl?: string;
+  }[];
+  imageVariants?: {
+    id: string;
+    url: string;
+    dimensions?: string;
+    colorName?: string;
+    colorHex?: string;
+    bgHex?: string;
+    accentHex?: string;
+  }[];
   finish?: string;
   origin?: string;
   isFeatured?: boolean;
@@ -35,6 +57,7 @@ export interface AdminOrder {
   id: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   customerCity: string;
   customerAddress: string;
   source?: string;
@@ -75,6 +98,7 @@ export interface AdminTrendingVideo {
   likes: string;
   productId?: string | number;
   productName: string;
+  category?: string;
   productSlug: string;
   productImage?: string;
   price: string;
@@ -82,6 +106,9 @@ export interface AdminTrendingVideo {
   videoUrl?: string;
   active: boolean;
   dateAdded: string;
+  customerName?: string;
+  city?: string;
+  quote?: string;
 }
 
 export interface AdminCategory {
@@ -95,17 +122,34 @@ export interface AdminCategory {
   dateAdded?: string;
 }
 
-export const INITIAL_ADMIN_PRODUCTS: AdminProduct[] = DECOR_PRODUCTS.map((p, idx) => {
+const getCategorySlugForDecor = (catName?: string) => {
+  if (!catName) return "calligraphie";
+  const lower = catName.toLowerCase();
+  if (lower.includes("calligraphie") || lower.includes("ruche") || lower.includes("tableau")) return "calligraphie";
+  if (lower.includes("étagère") || lower.includes("etagere") || lower.includes("mobilier")) return "etagere";
+  if (lower.includes("arche") || lower.includes("panneau")) return "arche";
+  if (lower.includes("miroir")) return "miroir";
+  if (lower.includes("médaillon") || lower.includes("medaillon") || lower.includes("relief")) return "medaillon";
+  return "calligraphie";
+};
+
+const ALL_CATALOG_PRODUCTS: Product[] = [
+  ...PRODUCTS,
+  ...DECOR_PRODUCTS.filter((dp) => !PRODUCTS.some((p) => p.id === dp.id)),
+];
+
+export const INITIAL_ADMIN_PRODUCTS: AdminProduct[] = ALL_CATALOG_PRODUCTS.map((p, idx) => {
   const stock = p.stockCount ?? (idx % 3 === 0 ? 3 : 8);
   const status: "in_stock" | "low_stock" | "out_of_stock" =
     stock <= 0 ? "out_of_stock" : stock <= 4 ? "low_stock" : "in_stock";
+  const catSlug = getCategorySlugForDecor(p.category);
   return {
     id: p.id,
     name: p.name,
     nameAr: p.nameAr,
     slug: p.slug,
-    categorySlug: p.categorySlug || "bois-de-cedre",
-    categoryName: p.category || "Artisanat d'Art",
+    categorySlug: catSlug,
+    categoryName: p.category || "Calligraphie Murale",
     price: p.price,
     oldPrice: p.originalPrice,
     stock,
@@ -127,22 +171,65 @@ export const INITIAL_ADMIN_PRODUCTS: AdminProduct[] = DECOR_PRODUCTS.map((p, idx
   };
 });
 
-export const INITIAL_ADMIN_CATEGORIES: AdminCategory[] = DEFAULT_CATEGORIES.map((c) => ({
-  id: c.id,
-  slug: c.slug,
-  name: c.name,
-  nameAr: c.nameAr,
-  description: c.description,
-  image: c.image,
-  itemCount: c.itemCount,
-  dateAdded: "2026-01-15",
-}));
+export const INITIAL_ADMIN_CATEGORIES: AdminCategory[] = [
+  {
+    id: "calligraphie",
+    slug: "calligraphie",
+    name: "Calligraphie Murale",
+    nameAr: "خط عربي ولوحات مذهبة",
+    description: "Compositions alvéolaires et calligraphies d'apparat en bois noble et feuilles d'or 24 carats.",
+    image: "/decor-honeycomb-calligraphy.webp",
+    itemCount: 2,
+    dateAdded: "2026-01-15",
+  },
+  {
+    id: "etagere",
+    slug: "etagere",
+    name: "Étagères & Mobilier Mural",
+    nameAr: "رفوف جدارية فاخرة",
+    description: "Consoles murales sculptées en noyer sauvage de l'Atlas et laiton doré ciselé.",
+    image: "/decor-alhamdulillah-shelf.webp",
+    itemCount: 2,
+    dateAdded: "2026-01-15",
+  },
+  {
+    id: "arche",
+    slug: "arche",
+    name: "Arches & Panneaux",
+    nameAr: "أقواس أندلسية محفورة",
+    description: "Arches mauresques cintrées et panneaux géométriques en cèdre parfumé de l'Atlas.",
+    image: "/decor-ya-allah-arch.webp",
+    itemCount: 2,
+    dateAdded: "2026-01-15",
+  },
+  {
+    id: "miroir",
+    slug: "miroir",
+    name: "Miroirs d'Art",
+    nameAr: "مرايا شمسية أصيلة",
+    description: "Miroirs solaires sculptés en bois précieux et sertissages de laiton doré étincelant.",
+    image: "/decor-sunburst-mirror.webp",
+    itemCount: 2,
+    dateAdded: "2026-01-15",
+  },
+  {
+    id: "medaillon",
+    slug: "medaillon",
+    name: "Médaillons & Reliefs",
+    nameAr: "دروع وميداليات دائرية",
+    description: "Disques et médaillons royaux ciselés en bas-relief à la main avec arabesques traditionnelles.",
+    image: "/decor-gold-medallion.webp",
+    itemCount: 2,
+    dateAdded: "2026-01-15",
+  },
+];
 
 export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
   {
     id: "CMD-MAR-8941",
     customerName: "Lalla Fatima-Zahra Benali",
     customerPhone: "0661245890",
+    customerEmail: "fatimazahra.benali@gmail.com",
     customerCity: "Casablanca",
     customerAddress: "Angle Bd d'Anfa et Zerktouni, Résidence Les Palmiers, Étage 4",
     source: "Site Web",
@@ -172,6 +259,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8940",
     customerName: "Si Youssef Amrani",
     customerPhone: "0663456789",
+    customerEmail: "youssef.amrani@gmail.com",
     customerCity: "Rabat",
     customerAddress: "Secteur 21, Rue Al Inara, Villa 12, Souissi",
     source: "Instagram Ads",
@@ -201,6 +289,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8939",
     customerName: "Dr. Mehdi Tazi",
     customerPhone: "0661789012",
+    customerEmail: "mehdi.tazi@gmail.com",
     customerCity: "Marrakech",
     customerAddress: "Palmeraie Circuit, Villa Dar Diafa, Porte 3",
     source: "Site Web",
@@ -223,6 +312,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8938",
     customerName: "Salma El Mansouri",
     customerPhone: "0662890123",
+    customerEmail: "salma.mansouri@gmail.com",
     customerCity: "Fès",
     customerAddress: "Route d'Imouzzer, Résidence Riad Al Andalus",
     source: "TikTok Ads",
@@ -244,6 +334,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8937",
     customerName: "Kenza Berrada",
     customerPhone: "0664567890",
+    customerEmail: "kenza.berrada@gmail.com",
     customerCity: "Tanger",
     customerAddress: "Malabata, Résidence Bay View, Tanger",
     source: "Site Web",
@@ -265,6 +356,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8936",
     customerName: "Amina Cherkaoui",
     customerPhone: "0665123456",
+    customerEmail: "amina.cherkaoui@gmail.com",
     customerCity: "Agadir",
     customerAddress: "Baie des Palmiers, Sonaba, Agadir",
     source: "Facebook Ads",
@@ -286,6 +378,7 @@ export const INITIAL_ADMIN_ORDERS: AdminOrder[] = [
     id: "CMD-MAR-8935",
     customerName: "Rachid Bennani",
     customerPhone: "0667894561",
+    customerEmail: "rachid.bennani@gmail.com",
     customerCity: "Meknès",
     customerAddress: "Hamria, Rue Beyrouth, Immeuble Atlas",
     source: "Site Web",
@@ -401,98 +494,116 @@ export const INITIAL_ADMIN_REVIEWS: AdminReview[] = [
 
 export const INITIAL_ADMIN_VIDEOS: AdminTrendingVideo[] = [
   {
-    id: "vid-1",
-    title: "Tissage Ancestral d'un Tapis Beni Ourain en Pure Laine au Moyen Atlas",
+    id: "1",
+    title: "L'effet des ombres sur le mur du salon le soir est juste magique !",
     author: "@marjad_officiel",
+    customerName: "Salma K.",
+    city: "Casablanca",
     views: "148k",
     likes: "18.5k",
-    productId: "1",
-    productName: "Tapis Beni Ourain 'Atlas Royal'",
-    productSlug: "tapis-beni-ourain-atlas-royal",
-    productImage: "/images/products/prod-tapis.jpg",
-    price: "3,200 DH",
-    thumbnail: "/images/products/prod-tapis.jpg",
-    videoUrl: "",
+    productId: "2",
+    productName: "Lanterne en Cuivre Ciselé",
+    category: "Luminaires & Cuivre",
+    productSlug: "lanterne-marrakech-cuivre-cisele",
+    productImage: "/images/products/prod-lanterne.jpg",
+    price: "1 250 DH",
+    thumbnail: "/images/products/prod-lanterne.jpg",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-01",
   },
   {
-    id: "vid-2",
-    title: "Ciselure Manuelle au Burin d'une Lanterne Royale en Cuivre à Marrakech",
+    id: "2",
+    title: "Reçu en 24h à Rabat. Laine d'une douceur exceptionnelle.",
     author: "@marjad_officiel",
-    views: "98k",
-    likes: "12.3k",
-    productId: "2",
-    productName: "Lanterne Majestueuse en Cuivre Ciselé",
-    productSlug: "lanterne-marrakech-cuivre-cisele",
-    productImage: "/images/products/prod-lanterne.jpg",
-    price: "1,450 DH",
-    thumbnail: "/images/products/prod-lanterne.jpg",
-    videoUrl: "",
+    customerName: "Youssef & Rita",
+    city: "Rabat",
+    views: "220k",
+    likes: "24.1k",
+    productId: "1",
+    productName: "Tapis Beni Ourain Atlas",
+    category: "Tapis & Tissage",
+    productSlug: "tapis-beni-ourain-atlas-royal",
+    productImage: "/images/products/prod-tapis.jpg",
+    price: "3 400 DH",
+    thumbnail: "/images/products/prod-tapis.jpg",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-02",
   },
   {
-    id: "vid-3",
-    title: "Taillage d'un Zellige Vert Émeraude au Menqach Traditionnel de Fès",
+    id: "3",
+    title: "Parfaitement emballée, le vert émeraude du zellige est splendide.",
     author: "@marjad_officiel",
-    views: "220k",
-    likes: "29.1k",
+    customerName: "Nadia M.",
+    city: "Marrakech",
+    views: "185k",
+    likes: "19.8k",
     productId: "3",
-    productName: "Table de Salon en Zellige Vert Émeraude",
+    productName: "Table Ronde en Zellige",
+    category: "Zellige & Mosaïque",
     productSlug: "table-ronde-zellige-fes-vert-emeraude",
     productImage: "/images/products/prod-zellige.jpg",
-    price: "2,800 DH",
+    price: "2 800 DH",
     thumbnail: "/images/products/prod-zellige.jpg",
-    videoUrl: "",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-03",
   },
   {
-    id: "vid-4",
-    title: "Pose de Feuille d'Or sur le Panneau Calligraphique 'سبحان الله'",
+    id: "4",
+    title: "Deuxième commande chez Marjad, la qualité du cuir est irréprochable.",
     author: "@marjad_officiel",
-    views: "175k",
-    likes: "21.4k",
-    productId: "decor-1",
-    productName: "Tableau Ruche 'سبحان الله وبحمده'",
-    productSlug: "tableau-ruche-subhan-allah",
-    productImage: "/decor-honeycomb-calligraphy.webp",
-    price: "1,350 DH",
-    thumbnail: "/decor-honeycomb-calligraphy.webp",
-    videoUrl: "",
+    customerName: "Mehdi B.",
+    city: "Tanger",
+    views: "95k",
+    likes: "11.2k",
+    productId: "4",
+    productName: "Poufs en Cuir Cognac",
+    category: "Maroquinerie & Cuir",
+    productSlug: "pouf-cuir-naturel-marrakech-cognac",
+    productImage: "/images/products/prod-pouf.jpg",
+    price: "420 DH",
+    thumbnail: "/images/products/prod-pouf.jpg",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-04",
   },
   {
-    id: "vid-5",
-    title: "Tannage Végétal et Broderie Sabra d'un Pouf en Cuir de Chèvre",
+    id: "5",
+    title: "Une véritable œuvre d'art sur ma console d'entrée.",
     author: "@marjad_officiel",
-    views: "112k",
-    likes: "14.2k",
-    productId: "4",
-    productName: "Pouf Traditionnel en Cuir de Chèvre Cognac",
-    productSlug: "pouf-cuir-naturel-marrakech-cognac",
-    productImage: "/images/products/prod-pouf.jpg",
-    price: "490 DH",
-    thumbnail: "/images/products/prod-pouf.jpg",
-    videoUrl: "",
+    customerName: "Houda L.",
+    city: "Fès",
+    views: "110k",
+    likes: "14.6k",
+    productId: "5",
+    productName: "Vase Céramique Bleu de Fès",
+    category: "Poterie & Céramique",
+    productSlug: "vase-ceramique-bleu-fes",
+    productImage: "/images/products/prod-vase.jpg",
+    price: "380 DH",
+    thumbnail: "/images/products/prod-vase.jpg",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-05",
   },
   {
-    id: "vid-6",
-    title: "Sculpture sur Bois de Cèdre Odorant de l'Arche Mauresque",
+    id: "6",
+    title: "L'odeur naturelle du cèdre et la finesse de la sculpture, j'adore.",
     author: "@marjad_officiel",
-    views: "89k",
-    likes: "9.6k",
+    customerName: "Karim E.",
+    city: "Agadir",
+    views: "134k",
+    likes: "16.3k",
     productId: "6",
-    productName: "Miroir d'Arche Sculpté en Bois de Cèdre",
-    productSlug: "miroir-sculpte-bois-cedre-moulay-idriss",
+    productName: "Miroir d'Arche en Cèdre",
+    category: "Bois Sculpté & Cèdre",
+    productSlug: "miroir-arche-cedre",
     productImage: "/images/products/prod-miroir.jpg",
-    price: "1,650 DH",
+    price: "890 DH",
     thumbnail: "/images/products/prod-miroir.jpg",
-    videoUrl: "",
+    videoUrl: "/pinterest_video.mp4",
     active: true,
     dateAdded: "2026-10-06",
   },

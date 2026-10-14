@@ -19,12 +19,12 @@ import {
   Layers,
   MessageSquare,
   Video,
-  Star,
   CheckCircle2,
   Clock,
   ExternalLink,
   ChevronRight,
   User,
+  Target,
 } from "lucide-react";
 import {
   INITIAL_ADMIN_PRODUCTS,
@@ -328,13 +328,13 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                     M
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs text-[#1F2937] truncate">Admin MARJAD</p>
+                    <p className="font-bold text-xs text-[#1F2937] truncate">Marjad Admin</p>
                     <p className="text-[10px] text-neutral-400 truncate">contact.marjad@gmail.com</p>
                   </div>
                 </div>
 
                 <div className="space-y-0.5 text-xs">
-                  {/* Retour à la boutique */}
+                  {/* 1. Retour à la boutique */}
                   <Link
                     href="/"
                     onClick={() => setShowProfileMenu(false)}
@@ -344,17 +344,27 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                     <span className="truncate">Retour à la boutique</span>
                   </Link>
 
-                  {/* Tableau de bord */}
+                  {/* 2. Mon Profil */}
                   <Link
-                    href="/admin"
+                    href="/profile"
                     onClick={() => setShowProfileMenu(false)}
                     className="w-full px-3 py-2 rounded-xl hover:bg-[#FAF7F2] text-[#1F2937] hover:text-[#6d381e] font-semibold transition flex items-center gap-2.5 cursor-pointer"
                   >
-                    <Layers className="w-4 h-4 text-[#6d381e] shrink-0" />
-                    <span>Tableau de bord</span>
+                    <User className="w-4 h-4 text-[#6d381e] shrink-0" />
+                    <span>Mon Profil</span>
                   </Link>
 
-                  {/* Déconnexion */}
+                  {/* 3. Meta Pixel */}
+                  <Link
+                    href="/admin/pixel"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="w-full px-3 py-2 rounded-xl hover:bg-[#FAF7F2] text-[#1F2937] hover:text-[#6d381e] font-semibold transition flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Target className="w-4 h-4 text-[#6d381e] shrink-0" />
+                    <span>Meta Pixel</span>
+                  </Link>
+
+                  {/* 4. Déconnexion */}
                   <div className="border-t border-[#EDE5E0] pt-1 mt-1">
                     <button
                       type="button"
@@ -696,9 +706,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                                     <span className="font-bold text-xs text-[#1F2937] truncate">
                                       {r.customerName} ({r.customerCity})
                                     </span>
-                                    <div className="flex items-center text-amber-500 text-[10px]">
-                                      <Star className="w-3 h-3 fill-amber-500" />
-                                      <span className="font-bold ml-0.5">{r.rating}</span>
+                                    <div className="flex items-center text-[#ba4e1a] text-[10px]">
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span className="font-bold ml-0.5">{r.rating}/5</span>
                                     </div>
                                   </div>
                                   <p className="text-[11px] text-[#6d381e] font-semibold truncate mt-0.5">

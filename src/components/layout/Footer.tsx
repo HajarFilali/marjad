@@ -24,7 +24,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { MoroccanWoodLattice } from "./MoroccanWoodLattice";
-import { MARJAD_PATH_DATA } from "./marjadPath";
+import { ResendWatermarkMarjad } from "./ResendWatermarkMarjad";
 
 export type SupportTab = "suivi" | "livraison" | "retours" | "faq" | "confidentialite";
 
@@ -44,119 +44,7 @@ export function Footer() {
     );
   };
 
-  const watermarkRef = useRef<HTMLDivElement>(null);
-  const spotlightRef = useRef<HTMLDivElement>(null);
-  const beamRef = useRef<HTMLDivElement>(null);
-  const animFrameRef = useRef<number | null>(null);
-  const hasTriggeredSweepRef = useRef<boolean>(false);
 
-  // Mouse interactive spotlight handlers
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!watermarkRef.current || !spotlightRef.current) return;
-    const rect = watermarkRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    spotlightRef.current.style.setProperty("--mouse-x", `${x}px`);
-    spotlightRef.current.style.setProperty("--mouse-y", `${y}px`);
-    spotlightRef.current.style.setProperty("--mouse-opacity", "1");
-  };
-
-  const handleMouseLeave = () => {
-    if (!spotlightRef.current) return;
-    spotlightRef.current.style.setProperty("--mouse-opacity", "0");
-  };
-
-  // Scroll entrance beam sweep: sweeps right-to-left across MARJAD (D -> M)
-  const startBeamSweep = () => {
-    if (!watermarkRef.current || !beamRef.current) return;
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-    }
-
-    const rect = watermarkRef.current.getBoundingClientRect();
-    const width = rect.width || (typeof window !== "undefined" ? window.innerWidth : 1200);
-    // Start at right edge beyond 'D', finish at left edge beyond 'M'
-    const startX = width + 140;
-    const endX = -140;
-    const duration = 1250; // smooth and fast pass ("ghadi ydouz deghya")
-    const startTime = performance.now();
-    const centerY = rect.height ? rect.height * 0.52 : 140;
-
-    beamRef.current.style.setProperty("--beam-y", `${centerY}px`);
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Graceful cubic easeInOut
-      const ease =
-        progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      const currentX = startX + (endX - startX) * ease;
-
-      // Opacity envelope: ramp up first 12%, full beam, ramp down last 12%
-      let opacity = 1;
-      if (progress < 0.12) {
-        opacity = progress / 0.12;
-      } else if (progress > 0.88) {
-        opacity = Math.max(0, (1 - progress) / 0.12);
-      }
-
-      if (beamRef.current) {
-        beamRef.current.style.setProperty("--beam-x", `${currentX}px`);
-        beamRef.current.style.setProperty("--beam-opacity", `${opacity}`);
-      }
-
-      if (progress < 1) {
-        animFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        if (beamRef.current) {
-          beamRef.current.style.setProperty("--beam-opacity", "0");
-        }
-        animFrameRef.current = null;
-      }
-    };
-
-    animFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  // Trigger beam sweep whenever user scrolls into the footer section
-  useEffect(() => {
-    const target = watermarkRef.current;
-    if (!target || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (!hasTriggeredSweepRef.current) {
-              hasTriggeredSweepRef.current = true;
-              // Brief tick so user sees the sweep as the footer slides into view
-              const timer = setTimeout(() => {
-                startBeamSweep();
-              }, 160);
-              return () => clearTimeout(timer);
-            }
-          } else {
-            // Reset when scrolled out of view so re-scrolling into footer triggers it again!
-            hasTriggeredSweepRef.current = false;
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    observer.observe(target);
-
-    return () => {
-      observer.disconnect();
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
-    };
-  }, []);
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -187,6 +75,7 @@ export function Footer() {
   if (
     pathname === "/boutique" ||
     pathname === "/login" ||
+    pathname === "/profile" ||
     pathname?.startsWith("/panier") ||
     pathname?.startsWith("/commande") ||
     pathname?.startsWith("/admin")
@@ -427,117 +316,19 @@ export function Footer() {
         </div>
 
         {/* ========================================================================= */}
-        {/* 3. LOWER SECTION (Watermark with Auto-Sweep & Mouse Spotlight)            */}
+        {/* 3. LOWER SECTION (Watermark with Exact Resend-Style Light Beam)           */}
         {/* ========================================================================= */}
         <div className="relative z-10 w-full select-none mt-2.5 sm:mt-3.5 h-[235px] sm:h-[255px] lg:h-[275px] overflow-hidden">
-          {/* MASSIVE WATERMARK WITH AUTO-SWEEP BEAM (D -> M) & MOUSE SPOTLIGHT */}
-          <div
-            ref={watermarkRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onMouseEnter={handleMouseMove}
-            className="relative w-full h-full flex justify-center items-end pb-8 sm:pb-9 select-none overflow-hidden cursor-default group pointer-events-auto"
-          >
-            {/* 1. Base ambient watermark: Clean unified outline with 2.5px crisp white border */}
-            <svg
-              viewBox={MARJAD_PATH_DATA.viewBox}
-              className="w-full h-auto max-h-[150px] sm:max-h-[175px] lg:max-h-[200px] max-w-[1040px] sm:max-w-[1140px] lg:max-w-[1200px] px-3 sm:px-6 pointer-events-none select-none"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d={MARJAD_PATH_DATA.d}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.82)"
-                strokeWidth="2.5"
-                vectorEffect="non-scaling-stroke"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                style={{
-                  filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.90))",
-                }}
-              />
-            </svg>
-
-            {/* 2. Auto Scroll Beam Sweep Layer (Sweeps Right to Left: D -> M on scroll into view) */}
-            <div
-              ref={beamRef}
-              aria-hidden="true"
-              className="absolute inset-0 flex justify-center items-end pb-8 sm:pb-9 pointer-events-none select-none transition-opacity duration-300"
-              style={{
-                opacity: "var(--beam-opacity, 0)",
-                WebkitMaskImage:
-                  "radial-gradient(180px circle at var(--beam-x, -500px) var(--beam-y, 50%), black 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%)",
-                maskImage:
-                  "radial-gradient(180px circle at var(--beam-x, -500px) var(--beam-y, 50%), black 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%)",
-              }}
-            >
-              <svg
-                viewBox={MARJAD_PATH_DATA.viewBox}
-                className="w-full h-auto max-h-[150px] sm:max-h-[175px] lg:max-h-[200px] max-w-[1040px] sm:max-w-[1140px] lg:max-w-[1200px] px-3 sm:px-6 pointer-events-none select-none"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d={MARJAD_PATH_DATA.d}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.95)"
-                  strokeWidth="2"
-                  vectorEffect="non-scaling-stroke"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  style={{
-                    filter:
-                      "drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 14px rgba(233, 220, 213, 0.45))",
-                  }}
-                />
-              </svg>
-            </div>
-
-            {/* 3. Interactive Mouse Spotlight Layer (Soft, elegant light matching Vinillia exact style) */}
-            <div
-              ref={spotlightRef}
-              aria-hidden="true"
-              className="absolute inset-0 flex justify-center items-end pb-8 sm:pb-9 pointer-events-none select-none transition-opacity duration-300"
-              style={{
-                opacity: "var(--mouse-opacity, 0)",
-                WebkitMaskImage:
-                  "radial-gradient(180px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%)",
-                maskImage:
-                  "radial-gradient(180px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%)",
-              }}
-            >
-              <svg
-                viewBox={MARJAD_PATH_DATA.viewBox}
-                className="w-full h-auto max-h-[150px] sm:max-h-[175px] lg:max-h-[200px] max-w-[1040px] sm:max-w-[1140px] lg:max-w-[1200px] px-3 sm:px-6 pointer-events-none select-none"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d={MARJAD_PATH_DATA.d}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.95)"
-                  strokeWidth="2"
-                  vectorEffect="non-scaling-stroke"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  style={{
-                    filter:
-                      "drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 14px rgba(233, 220, 213, 0.45))",
-                  }}
-                />
-              </svg>
-            </div>
-          </div>
+          <ResendWatermarkMarjad />
 
           {/* ========================================================================= */}
           {/* 4. BOTTOM COPYRIGHT & LEGAL BAR (Floating cleanly without dark box overlay) */}
           {/* ========================================================================= */}
-          <div className="pointer-events-auto absolute bottom-0 inset-x-0 z-20 w-full px-5 sm:px-8 py-3 flex flex-col sm:flex-row items-center justify-between text-[10px] text-white/80 font-medium uppercase tracking-[0.18em] gap-2">
-            <p className="text-center sm:text-left drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 z-20 w-full px-5 sm:px-8 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center justify-between text-[10px] text-white/80 font-medium uppercase tracking-[0.18em] gap-2">
+            <p className="pointer-events-auto text-center sm:text-left drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               © {new Date().getFullYear()} MARJAD. Tous droits réservés.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               <span>100% Fait Main au Maroc</span>
               <span>•</span>
               <span>Paiement à la Livraison</span>

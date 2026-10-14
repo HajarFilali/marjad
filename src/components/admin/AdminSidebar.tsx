@@ -92,7 +92,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const isActive = (href: string, exact = false) => {
     if (href === "/admin") {
-      return pathname === "/admin" || pathname === "/admin/";
+      return (
+        pathname === "/admin" ||
+        pathname === "/admin/" ||
+        Boolean(pathname?.startsWith("/admin/pixel"))
+      );
     }
     // When in category creation originating from a product form, keep Produits highlighted!
     if (isFromProduits) {
@@ -105,9 +109,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const renderActiveNotches = () => (
     <>
-      {/* Courbure supérieure inversée : transition fluide et continue vers le canevas blanc */}
+      {/* Courbure supérieure inversée : transition fluide et continue vers le canevas blanc sans bordure */}
       <svg
-        className="hidden lg:block absolute -top-8 right-0 w-8 h-8 pointer-events-none z-30"
+        className="hidden lg:block absolute bottom-full right-0 translate-y-[1px] w-8 h-8 pointer-events-none z-30"
         viewBox="0 0 32 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -115,11 +119,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <path
           d="M0 32C17.673 32 32 14.327 32 0V32H0Z"
           fill="#FFFFFF"
+          stroke="none"
         />
       </svg>
       {/* Courbure inférieure inversée */}
       <svg
-        className="hidden lg:block absolute -bottom-8 right-0 w-8 h-8 pointer-events-none z-30"
+        className="hidden lg:block absolute top-full right-0 -translate-y-[1px] w-8 h-8 pointer-events-none z-30"
         viewBox="0 0 32 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -127,6 +132,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <path
           d="M0 0C17.673 0 32 17.673 32 32V0H0Z"
           fill="#FFFFFF"
+          stroke="none"
         />
       </svg>
     </>
@@ -169,7 +175,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   onClick={() => setMobileOpen(false)}
                   className={`cursor-pointer ${
                     active
-                      ? "bg-white text-[#ba4e1a] font-bold rounded-l-full ml-3 w-[calc(100%-0.75rem)] pl-4 pr-5 py-2.5 relative z-30 flex items-center justify-between shadow-2xs"
+                      ? "bg-white text-[#ba4e1a] font-bold rounded-l-full ml-3 w-[calc(100%-0.75rem)] pl-4 pr-5 py-2.5 relative z-30 flex items-center justify-between shadow-none border-0 outline-none"
                       : "text-[#6d381e]/80 hover:text-[#6d381e] hover:bg-white/50 transition-colors duration-150 mx-3 px-3.5 py-2 rounded-2xl font-medium flex items-center justify-between"
                   }`}
                 >

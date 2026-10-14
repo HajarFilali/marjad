@@ -31,6 +31,7 @@ interface CustomerVideo {
   duration: string;
   thumbnail: string;
   productImage: string;
+  videoUrl?: string;
   quote: string;
   initialComments: CustomerComment[];
 }
@@ -680,7 +681,7 @@ function ReelCard({
           <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", background: "#1a2e1d" }}>
             {/* Immediate synchronous background image: prevents black silhouette on page refresh */}
             <img
-              src="/pinterest-ref.jpg"
+              src={video.thumbnail || video.productImage || "/pinterest-ref.jpg"}
               alt={video.productName}
               style={{
                 position: "absolute",
@@ -692,8 +693,8 @@ function ReelCard({
             />
             <video
               ref={videoRef}
-              src="/pinterest_video.mp4"
-              poster="/pinterest-ref.jpg"
+              src={video.videoUrl || "/pinterest_video.mp4"}
+              poster={video.thumbnail || video.productImage || "/pinterest-ref.jpg"}
               muted
               playsInline
               loop
@@ -764,6 +765,7 @@ export function CustomerVideosSection() {
   const trackRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const pathRef = useRef<SVGPathElement>(null);
+  const [videoItems, setVideoItems] = useState<CustomerVideo[]>(VIDEOS);
   const [activeVideo, setActiveVideo] = useState<CustomerVideo | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [flightPath, setFlightPath] = useState<string>(() => getEstimatedInitialGeometry().pathD);
@@ -772,6 +774,70 @@ export function CustomerVideosSection() {
   const [scrollLeftPos, setScrollLeftPos] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(1200);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadVideosFromStorage = useCallback(() => {
+    try {
+      const stored = localStorage.getItem("marjad_admin_videos");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped: CustomerVideo[] = parsed.map((item: any, idx: number) => {
+            const orig = VIDEOS.find((v) => String(v.id) === String(item.id));
+            return {
+              id: String(item.id || idx + 1),
+              customerName: item.customerName || item.author || "Client Marjad",
+              city: item.city || "Marrakech",
+              productName: item.productName || item.title || "Création Artisanale",
+              category: item.category || "Artisanat d'exception",
+              price: item.price || "Sur mesure",
+              duration: item.duration || "0:04",
+              thumbnail: item.thumbnail || item.productImage || "/images/products/prod-lanterne.jpg",
+              productImage: item.productImage || item.thumbnail || "/images/products/prod-lanterne.jpg",
+              videoUrl: item.videoUrl || "/pinterest_video.mp4",
+              quote: item.title || item.quote || "Une création marocaine d'exception.",
+              initialComments: item.initialComments || orig?.initialComments || [
+                {
+                  id: `c-${item.id}-1`,
+                  userName: "Amina R.",
+                  avatar: "A",
+                  avatarBg: "bg-[#78350f]",
+                  time: "Il y a 2h",
+                  text: "تبارك الله! النحاس المتقون كيبان جودة عالية بزاف 😍",
+                  likes: 14,
+                },
+                {
+                  id: `c-${item.id}-2`,
+                  userName: "Marjad Artisans",
+                  avatar: "M",
+                  avatarBg: "bg-[#78350f]",
+                  isOfficial: true,
+                  time: "Il y a 1h",
+                  text: "Bonjour ! Fait avec passion dans nos ateliers fassis ✨",
+                  likes: 9,
+                },
+              ],
+            };
+          });
+          setVideoItems(mapped);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading videos:", err);
+    }
+    setVideoItems(VIDEOS);
+  }, []);
+
+  useEffect(() => {
+    loadVideosFromStorage();
+    const handleUpdate = () => loadVideosFromStorage();
+    window.addEventListener("marjad_videos_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("marjad_videos_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, [loadVideosFromStorage]);
 
   // Modal Video Player State (TikTok / Reels Style)
   const modalVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -921,7 +987,7 @@ export function CustomerVideosSection() {
     const trackRect = trackRef.current.getBoundingClientRect();
     const pts: { x: number; y: number; isDown: boolean }[] = [];
 
-    const totalCards = VIDEOS.length * 2;
+    const totalCards = videoItems.length * 2;
     for (let i = 0; i < totalCards; i++) {
       const cardEl = cardRefs.current[i];
       if (!cardEl) continue;
@@ -938,7 +1004,7 @@ export function CustomerVideosSection() {
     const geo = computeFlightGeometry(pts, totalTrackWidth);
     setFlightPath(geo.pathD);
     setBulbs(geo.bulbs);
-  }, []);
+  }, [videoItems]);
 
   // Synchronize bulbs with measured card positions
   const updateBulbs = useCallback(() => {
@@ -1295,7 +1361,7 @@ export function CustomerVideosSection() {
             </svg>
 
             {/* Staggered Moroccan Arch Reel Cards */}
-            {[...VIDEOS, ...VIDEOS].map((video, idx) => {
+            {[...videoItems, ...videoItems].map((video, idx) => {
               const isDown = idx % 2 !== 0;
 
               return (
@@ -1370,8 +1436,8 @@ export function CustomerVideosSection() {
               >
                 <video
                   ref={modalVideoRef}
-                  src="/pinterest_video.mp4"
-                  poster={activeVideo.thumbnail}
+                  src={activeVideo.videoUrl || "/pinterest_video.mp4"}
+                  poster={activeVideo.thumbnail || activeVideo.productImage}
                   autoPlay
                   playsInline
                   loop

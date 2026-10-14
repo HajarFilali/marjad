@@ -258,8 +258,8 @@ export function Navbar() {
     !isScrolled &&
     !mobileMenuOpen;
 
-  // Hide Navbar completely on /login and /admin pages
-  if (pathname === "/login" || pathname?.startsWith("/admin")) {
+  // Hide Navbar completely on /login, /admin and /profile pages
+  if (pathname === "/login" || pathname?.startsWith("/admin") || pathname === "/profile") {
     return null;
   }
 

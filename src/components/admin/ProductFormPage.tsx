@@ -23,12 +23,228 @@ import {
   Save,
   Tag,
   Info,
+  Plus,
+  Sparkles,
+  Ruler,
+  Palette,
+  Check,
 } from "lucide-react";
+
+export interface ImageVariantItem {
+  id: string;
+  url: string; // Base64 dataURL or public URL
+  dimensions: string; // Dimensions spécifiques à cette pièce/photo (commence vide)
+  colorName: string; // Nom de la nuance combinée (ex: "Noir Mat & Doré")
+  colorHex: string; // Couleur dominante de la calligraphie/motif
+  bgHex: string; // Moitié gauche: Couleur du support / fond
+  accentHex: string; // Moitié droite: Couleur de la calligraphie / écriture
+  bgGradient?: string;
+  isPrimary?: boolean;
+}
 
 interface ProductFormPageProps {
   mode: "create" | "edit";
   productId?: string | number;
 }
+
+// Fonction de détection automatique des 2 couleurs (Fond gauche + Calligraphie/Écriture droite)
+const detectProductDualColors = (
+  imageSrc: string
+): Promise<{
+  id: string;
+  name: string;
+  hex: string;
+  bgHex: string;
+  accentHex: string;
+  bgGradient: string;
+  textColor: string;
+}> => {
+  return new Promise((resolve) => {
+    if (!imageSrc || typeof window === "undefined") {
+      return resolve({
+        id: "noir-dore",
+        name: "Noir Mat & Doré",
+        hex: "#D4AF37",
+        bgHex: "#1C1917",
+        accentHex: "#D4AF37",
+        bgGradient: "linear-gradient(90deg, #1C1917 50%, #D4AF37 50%)",
+        textColor: "text-[#D4AF37]",
+      });
+    }
+
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = 64;
+        const h = 64;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) throw new Error("no context");
+
+        ctx.drawImage(img, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h).data;
+
+        // Échantillonnage des 4 coins pour identifier le fond blanc studio
+        const cornerIndices = [0, (w - 1) * 4, ((h - 1) * w) * 4, ((h - 1) * w + (w - 1)) * 4];
+        let studioR = 0, studioG = 0, studioB = 0;
+        cornerIndices.forEach((idx) => {
+          studioR += imgData[idx];
+          studioG += imgData[idx + 1];
+          studioB += imgData[idx + 2];
+        });
+        studioR /= 4;
+        studioG /= 4;
+        studioB /= 4;
+        const isWhiteStudio = studioR > 215 && studioG > 215 && studioB > 215;
+
+        type PixelInfo = { r: number; g: number; b: number; brightness: number };
+        const productPixels: PixelInfo[] = [];
+
+        for (let i = 0; i < imgData.length; i += 4) {
+          const r = imgData[i];
+          const g = imgData[i + 1];
+          const b = imgData[i + 2];
+          const a = imgData[i + 3];
+
+          if (a < 100) continue;
+          if (isWhiteStudio && r > 232 && g > 232 && b > 232) continue;
+          const distToStudio = Math.sqrt((r - studioR) ** 2 + (g - studioG) ** 2 + (b - studioB) ** 2);
+          if (distToStudio < 22) continue;
+
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          productPixels.push({ r, g, b, brightness });
+        }
+
+        if (productPixels.length === 0) {
+          return resolve({
+            id: "noir-dore",
+            name: "Noir Mat & Doré",
+            hex: "#D4AF37",
+            bgHex: "#1C1917",
+            accentHex: "#D4AF37",
+            bgGradient: "linear-gradient(90deg, #1C1917 50%, #D4AF37 50%)",
+            textColor: "text-[#D4AF37]",
+          });
+        }
+
+        let darkR = 0, darkG = 0, darkB = 0, darkCount = 0;
+        let brightR = 0, brightG = 0, brightB = 0, brightCount = 0;
+        let goldR = 0, goldG = 0, goldB = 0, goldCount = 0;
+
+        for (const p of productPixels) {
+          if (p.r > 130 && p.g > 95 && p.b < 120 && p.r > p.b + 25) {
+            goldR += p.r;
+            goldG += p.g;
+            goldB += p.b;
+            goldCount++;
+          }
+          if (p.brightness < 85) {
+            darkR += p.r;
+            darkG += p.g;
+            darkB += p.b;
+            darkCount++;
+          } else if (p.brightness > 130) {
+            brightR += p.r;
+            brightG += p.g;
+            brightB += p.b;
+            brightCount++;
+          }
+        }
+
+        const toHex = (r: number, g: number, b: number) =>
+          `#${((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b))
+            .toString(16)
+            .slice(1)
+            .toUpperCase()}`;
+
+        let detectedBgHex = "#1C1917";
+        let detectedAccentHex = "#D4AF37";
+        let baseName = "Noir Mat";
+        let accentName = "Doré";
+
+        // Détection de la couleur du fond / support (gauche)
+        if (darkCount > productPixels.length * 0.25) {
+          const avgR = darkR / darkCount;
+          const avgG = darkG / darkCount;
+          const avgB = darkB / darkCount;
+          if (avgR > 65 && avgG > 40 && avgB < 50 && avgR > avgB) {
+            detectedBgHex = toHex(avgR, avgG, avgB);
+            baseName = "Noyer Marron";
+          } else {
+            detectedBgHex = toHex(Math.min(30, avgR), Math.min(30, avgG), Math.min(30, avgB));
+            baseName = "Noir Mat";
+          }
+        } else {
+          const nonGold = productPixels.filter(
+            (p) => !(p.r > 130 && p.g > 95 && p.b < 120 && p.r > p.b + 25)
+          );
+          if (nonGold.length > 0) {
+            let sumR = 0, sumG = 0, sumB = 0;
+            nonGold.forEach((p) => {
+              sumR += p.r;
+              sumG += p.g;
+              sumB += p.b;
+            });
+            detectedBgHex = toHex(sumR / nonGold.length, sumG / nonGold.length, sumB / nonGold.length);
+            baseName = "Blanc Épuré";
+          }
+        }
+
+        // Détection de la couleur de la calligraphie / écriture (droite)
+        if (goldCount > 0) {
+          detectedAccentHex = toHex(goldR / goldCount, goldG / goldCount, goldB / goldCount);
+          accentName = "Doré (Or 24k)";
+        } else if (brightCount > 0 && darkCount > productPixels.length * 0.3) {
+          const avgR = brightR / brightCount;
+          const avgG = brightG / brightCount;
+          const avgB = brightB / brightCount;
+          detectedAccentHex = toHex(avgR, avgG, avgB);
+          accentName = "Argenté Miroir";
+        } else {
+          detectedAccentHex = "#D4AF37";
+          accentName = "Doré";
+        }
+
+        const fullName = `${baseName} & ${accentName}`;
+
+        resolve({
+          id: `var-${detectedBgHex.replace("#", "")}-${detectedAccentHex.replace("#", "")}`.toLowerCase(),
+          name: fullName,
+          hex: detectedAccentHex,
+          bgHex: detectedBgHex,
+          accentHex: detectedAccentHex,
+          bgGradient: `linear-gradient(90deg, ${detectedBgHex} 50%, ${detectedAccentHex} 50%)`,
+          textColor: "text-[#D4AF37]",
+        });
+      } catch {
+        resolve({
+          id: "noir-dore",
+          name: "Noir Mat & Doré",
+          hex: "#D4AF37",
+          bgHex: "#1C1917",
+          accentHex: "#D4AF37",
+          bgGradient: "linear-gradient(90deg, #1C1917 50%, #D4AF37 50%)",
+          textColor: "text-[#D4AF37]",
+        });
+      }
+    };
+    img.onerror = () => {
+      resolve({
+        id: "noir-dore",
+        name: "Noir Mat & Doré",
+        hex: "#D4AF37",
+        bgHex: "#1C1917",
+        accentHex: "#D4AF37",
+        bgGradient: "linear-gradient(90deg, #1C1917 50%, #D4AF37 50%)",
+        textColor: "text-[#D4AF37]",
+      });
+    };
+    img.src = imageSrc;
+  });
+};
 
 export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   mode,
@@ -48,6 +264,10 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const [categorySlug, setCategorySlug] = useState("");
   const [material, setMaterial] = useState("");
   const [dimensions, setDimensions] = useState("");
+  const [dimensionsList, setDimensionsList] = useState<string[]>([""]);
+  const [detectedColors, setDetectedColors] = useState<
+    Array<{ id: string; name: string; hex: string; bgGradient?: string; textColor?: string }>
+  >([]);
   const [technique, setTechnique] = useState("");
   const [finish, setFinish] = useState("");
   const [description, setDescription] = useState("");
@@ -64,10 +284,12 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
 
-  // Images
+  // Images & Variantes
   const [image, setImage] = useState("");
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
-  const [newAddImageUrl, setNewAddImageUrl] = useState("");
+  const [imageVariants, setImageVariants] = useState<ImageVariantItem[]>([]);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // 1. Load products & categories from localStorage
@@ -110,6 +332,20 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
           if (draft.isNewArrival !== undefined) setIsNewArrival(draft.isNewArrival);
           if (draft.image !== undefined) setImage(draft.image);
           if (draft.additionalImages !== undefined) setAdditionalImages(draft.additionalImages);
+          if (Array.isArray(draft.imageVariants) && draft.imageVariants.length > 0) {
+            const mapped: ImageVariantItem[] = draft.imageVariants.map((v: any, idx: number) => ({
+              id: v.id || `var-${idx}`,
+              url: v.url,
+              dimensions: v.dimensions || "",
+              colorName: v.colorName || "Finition",
+              colorHex: v.colorHex || "#D4AF37",
+              bgHex: v.bgHex || "#1C1917",
+              accentHex: v.accentHex || v.colorHex || "#D4AF37",
+              bgGradient: `linear-gradient(90deg, ${v.bgHex || "#1C1917"} 50%, ${v.accentHex || v.colorHex || "#D4AF37"} 50%)`,
+              isPrimary: v.isPrimary ?? idx === 0,
+            }));
+            setImageVariants(mapped);
+          }
           if (draft.categorySlug) setCategorySlug(draft.categorySlug);
         }
         localStorage.removeItem("marjad_product_form_draft");
@@ -157,6 +393,51 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         if (additionalImages.length === 0) {
           setAdditionalImages(p.images?.filter((img) => img !== p.image) || []);
         }
+
+        // Variantes d'images avec détection de couleur & dimensions
+        if (p.imageVariants && Array.isArray(p.imageVariants) && p.imageVariants.length > 0) {
+          const mapped: ImageVariantItem[] = p.imageVariants.map((v, idx) => ({
+            id: v.id || `var-${idx}`,
+            url: v.url,
+            dimensions: v.dimensions || p.dimensions || "",
+            colorName: v.colorName || "Finition",
+            colorHex: v.colorHex || "#D4AF37",
+            bgHex: v.bgHex || "#1C1917",
+            accentHex: v.accentHex || v.colorHex || "#D4AF37",
+            bgGradient: `linear-gradient(90deg, ${v.bgHex || "#1C1917"} 50%, ${v.accentHex || v.colorHex || "#D4AF37"} 50%)`,
+            isPrimary: idx === 0,
+          }));
+          setImageVariants(mapped);
+        } else if (p.colors && Array.isArray(p.colors) && p.colors.length > 0) {
+          const mapped: ImageVariantItem[] = p.colors.map((c, idx) => ({
+            id: c.id || `var-${idx}`,
+            url: c.imageUrl || p.images?.[c.imageIndex ?? idx] || p.image || "/decor-honeycomb-calligraphy.webp",
+            dimensions: c.dimensions || p.dimensions || "",
+            colorName: c.name || "Finition",
+            colorHex: c.hex || "#D4AF37",
+            bgHex: c.bgHex || (c.id === "noir-or" ? "#1C1917" : c.id === "argente" ? "#1C1917" : "#3E2723"),
+            accentHex: c.accentHex || c.hex || "#D4AF37",
+            bgGradient: `linear-gradient(90deg, ${c.bgHex || "#1C1917"} 50%, ${c.accentHex || c.hex || "#D4AF37"} 50%)`,
+            isPrimary: idx === 0,
+          }));
+          setImageVariants(mapped);
+        } else if (p.image || (p.images && p.images.length > 0)) {
+          const allImgs = [p.image, ...(p.images || [])].filter(
+            (img, i, arr): img is string => Boolean(img) && arr.indexOf(img) === i
+          );
+          const mapped: ImageVariantItem[] = allImgs.map((url, idx) => ({
+            id: `var-${idx}`,
+            url,
+            dimensions: p.dimensions || "",
+            colorName: idx === 0 ? "Finition Principale" : `Variante ${idx + 1}`,
+            colorHex: idx === 0 ? "#D4AF37" : "#1C1917",
+            bgHex: idx === 0 ? "#3E2723" : "#1C1917",
+            accentHex: idx === 0 ? "#D4AF37" : "#D1D5DB",
+            bgGradient: `linear-gradient(90deg, ${idx === 0 ? "#3E2723" : "#1C1917"} 50%, ${idx === 0 ? "#D4AF37" : "#D1D5DB"} 50%)`,
+            isPrimary: idx === 0,
+          }));
+          setImageVariants(mapped);
+        }
       }
     }
   }, [mode, productId, products]);
@@ -193,6 +474,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       isNewArrival,
       image,
       additionalImages,
+      imageVariants,
       mode,
       productId,
     };
@@ -251,30 +533,130 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     }
   };
 
-  // Handle adding secondary images
-  const handleAddImage = () => {
-    if (newAddImageUrl.trim() && additionalImages.length < 3) {
-      setAdditionalImages([...additionalImages, newAddImageUrl.trim()]);
-      setNewAddImageUrl("");
-    }
-  };
+  // Traitement direct de l'import des fichiers images avec analyse automatique de couleur (fond + calligraphie)
+  const processImageFiles = async (files: FileList | File[]) => {
+    const fileArr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (fileArr.length === 0) return;
 
-  const handleRemoveAddImage = (idx: number) => {
-    setAdditionalImages(additionalImages.filter((_, i) => i !== idx));
-  };
+    setIsProcessingImages(true);
+    try {
+      const newItems: ImageVariantItem[] = [];
 
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const result = uploadEvent.target?.result as string;
-        if (result) {
-          setImage(result);
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Détection chromatique bicolore (fond gauche + calligraphie droite)
+        const detected = await detectProductDualColors(dataUrl);
+
+        newItems.push({
+          id: `var-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+          url: dataUrl,
+          dimensions: "", // Commence vide comme demandé pour que l'utilisateur saisisse les dimensions
+          colorName: detected.name,
+          colorHex: detected.hex,
+          bgHex: detected.bgHex,
+          accentHex: detected.accentHex,
+          bgGradient: detected.bgGradient,
+          isPrimary: imageVariants.length === 0 && i === 0,
+        });
+      }
+
+      setImageVariants((prev) => {
+        const next = [...prev, ...newItems];
+        if (!next.some((v) => v.isPrimary) && next.length > 0) {
+          next[0].isPrimary = true;
         }
-      };
-      reader.readAsDataURL(file);
+        return next;
+      });
+
+      if (newItems.length > 0 && (!image || imageVariants.length === 0)) {
+        setImage(newItems[0].url);
+      }
+    } catch (err) {
+      console.error("Erreur lors de l'import des images :", err);
+    } finally {
+      setIsProcessingImages(false);
     }
+  };
+
+  // Modifier les dimensions d'une variante spécifique
+  const handleUpdateVariantDimensions = (id: string, newDim: string) => {
+    setImageVariants((prev) =>
+      prev.map((v) => {
+        if (v.id === id) {
+          if (v.isPrimary) {
+            setDimensions(newDim);
+          }
+          return { ...v, dimensions: newDim };
+        }
+        return v;
+      })
+    );
+  };
+
+  // Modifier le nom de la couleur d'une variante
+  const handleUpdateVariantColorName = (id: string, newName: string) => {
+    setImageVariants((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, colorName: newName } : v))
+    );
+  };
+
+  // Modifier la couleur du fond (gauche)
+  const handleUpdateVariantBgHex = (id: string, newBgHex: string) => {
+    setImageVariants((prev) =>
+      prev.map((v) => {
+        if (v.id === id) {
+          const bg = newBgHex;
+          const accent = v.accentHex || v.colorHex;
+          return {
+            ...v,
+            bgHex: bg,
+            bgGradient: `linear-gradient(90deg, ${bg} 50%, ${accent} 50%)`,
+          };
+        }
+        return v;
+      })
+    );
+  };
+
+  // Modifier la couleur de la calligraphie (droite)
+  const handleUpdateVariantAccentHex = (id: string, newAccentHex: string) => {
+    setImageVariants((prev) =>
+      prev.map((v) => {
+        if (v.id === id) {
+          const bg = v.bgHex || "#1C1917";
+          const accent = newAccentHex;
+          return {
+            ...v,
+            accentHex: accent,
+            colorHex: accent,
+            bgGradient: `linear-gradient(90deg, ${bg} 50%, ${accent} 50%)`,
+          };
+        }
+        return v;
+      })
+    );
+  };
+
+  // Supprimer une variante
+  const handleRemoveVariant = (id: string) => {
+    setImageVariants((prev) => {
+      const filtered = prev.filter((v) => v.id !== id);
+      if (filtered.length > 0 && !filtered.some((v) => v.isPrimary)) {
+        filtered[0].isPrimary = true;
+        setImage(filtered[0].url);
+        if (filtered[0].dimensions) setDimensions(filtered[0].dimensions);
+      } else if (filtered.length === 0) {
+        setImage("");
+      }
+      return filtered;
+    });
   };
 
   // Live Boutique preview product model
@@ -289,21 +671,42 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         ? Math.round(((crossedPrice - sellingPrice) / crossedPrice) * 100)
         : undefined;
 
-    const mainImg = image.trim();
-    const imgs = mainImg
-      ? [mainImg, ...additionalImages]
-      : additionalImages.length > 0
-      ? additionalImages
-      : [];
+    const primaryVar = imageVariants.find((v) => v.isPrimary) || imageVariants[0];
+    const mainImg = primaryVar?.url || image.trim();
+    const imgs =
+      imageVariants.length > 0
+        ? [primaryVar?.url || imageVariants[0].url, ...imageVariants.filter((v) => v !== primaryVar).map((v) => v.url)]
+        : mainImg
+        ? [mainImg, ...additionalImages]
+        : additionalImages.length > 0
+        ? additionalImages
+        : [];
+
+    const dynamicColors =
+      imageVariants.length > 0
+        ? imageVariants.map((v, idx) => ({
+            id: v.id,
+            name: v.colorName,
+            hex: v.accentHex || v.colorHex,
+            bgHex: v.bgHex || "#1C1917",
+            accentHex: v.accentHex || v.colorHex || "#D4AF37",
+            dimensions: v.dimensions,
+            imageIndex: idx,
+            imageUrl: v.url,
+            bgGradient: v.bgGradient || `linear-gradient(90deg, ${v.bgHex || "#1C1917"} 50%, ${v.accentHex || v.colorHex || "#D4AF37"} 50%)`,
+          }))
+        : undefined;
+
+    const currentDims = primaryVar?.dimensions || dimensions.trim() || "";
 
     return {
       id: productId || "preview-nouvelle-creation",
       slug: name ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "creation-artisanale",
       name: name.trim(),
       nameAr: nameAr.trim() || undefined,
-      category: selectedCategoryName || "",
+      category: selectedCategoryName.trim(),
       categorySlug: categorySlug || "",
-      price: sellingPrice,
+      price: sellingPrice > 0 ? sellingPrice : 0,
       originalPrice: crossedPrice,
       discountPercent,
       rating: 5.0,
@@ -314,16 +717,17 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
       isBestSeller: isBestSeller,
       isNewArrival: isNewArrival,
       images: imgs,
+      colors: dynamicColors,
       description: description.trim(),
       shortDescription: description.trim(),
       artisan: {
         name: "Maâlem Artisan Marjad",
         city: "Fès Médina",
-        craft: selectedCategoryName || "",
+        craft: selectedCategoryName || "Artisanat d'Art",
       },
       details: {
         material: material.trim(),
-        dimensions: dimensions.trim(),
+        dimensions: currentDims,
         origin: "Fès, Maroc",
         technique: technique.trim(),
       },
@@ -343,6 +747,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
     isBestSeller,
     isNewArrival,
     image,
+    imageVariants,
     additionalImages,
     description,
     material,
@@ -352,6 +757,11 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (imageVariants.length === 0 && !image.trim()) {
+      alert("Veuillez importer au moins une photo pour cette création.");
+      return;
+    }
 
     const currentList = products.length > 0 ? products : INITIAL_ADMIN_PRODUCTS;
     const finalStock = typeof stock === "number" ? stock : Number(stock) || 0;
@@ -363,7 +773,29 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
     const resolvedCategorySlug = categorySlug || categories[0]?.slug || "artisanat";
     const resolvedCategoryName = selectedCategoryName || categories[0]?.name || "Artisanat d'Art";
-    const resolvedImage = image.trim() || "/decor-honeycomb-calligraphy.webp";
+    const primaryVar = imageVariants.find((v) => v.isPrimary) || imageVariants[0];
+    const resolvedImage = primaryVar?.url || image.trim() || "/decor-honeycomb-calligraphy.webp";
+    const resolvedImages =
+      imageVariants.length > 0
+        ? [primaryVar?.url || imageVariants[0].url, ...imageVariants.filter((v) => v !== primaryVar).map((v) => v.url)]
+        : [resolvedImage, ...additionalImages];
+
+    const resolvedDimensions = primaryVar?.dimensions || dimensions.trim() || "75 cm × 28 cm";
+
+    const resolvedColors =
+      imageVariants.length > 0
+        ? imageVariants.map((v, idx) => ({
+            id: v.id,
+            name: v.colorName,
+            hex: v.accentHex || v.colorHex,
+            bgHex: v.bgHex || "#1C1917",
+            accentHex: v.accentHex || v.colorHex || "#D4AF37",
+            dimensions: v.dimensions,
+            imageIndex: idx,
+            imageUrl: v.url,
+            bgGradient: v.bgGradient || `linear-gradient(90deg, ${v.bgHex || "#1C1917"} 50%, ${v.accentHex || v.colorHex || "#D4AF37"} 50%)`,
+          }))
+        : undefined;
 
     const stockStatus: "in_stock" | "low_stock" | "out_of_stock" =
       finalStock <= 0 ? "out_of_stock" : finalStock <= 4 ? "low_stock" : "in_stock";
@@ -384,14 +816,16 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               artisanName: "Maâlem Artisan Marjad",
               artisanCity: "Fès Médina",
               material: material.trim(),
-              dimensions: dimensions.trim(),
+              dimensions: resolvedDimensions,
               finish: finish.trim(),
               technique: technique.trim(),
               isFeatured,
               isBestSeller,
               description: description.trim(),
               image: resolvedImage,
-              images: [resolvedImage, ...additionalImages],
+              images: resolvedImages,
+              colors: resolvedColors,
+              imageVariants: imageVariants.length > 0 ? imageVariants : undefined,
             }
           : p
       );
@@ -422,13 +856,15 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
         rating: 5.0,
         reviewsCount: 0,
         image: resolvedImage,
-        images: [resolvedImage, ...additionalImages],
+        images: resolvedImages,
+        colors: resolvedColors,
+        imageVariants: imageVariants.length > 0 ? imageVariants : undefined,
         shortDescription: description.trim().slice(0, 100),
         description: description.trim(),
         artisanName: "Maâlem Artisan Marjad",
         artisanCity: "Fès Médina",
         material: material.trim(),
-        dimensions: dimensions.trim(),
+        dimensions: resolvedDimensions,
         finish: finish.trim(),
         technique: technique.trim(),
         isFeatured,
@@ -733,97 +1169,221 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
               </div>
             </div>
 
-            {/* Section 4: Visuels & Galerie Studio */}
+            {/* Section 4: Galerie Photos & Nuances */}
             <div className="space-y-4 pt-1">
               <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E6]">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-[#ba4e1a]" />
                   <h2 className="font-serif font-bold text-base text-[#1F2937]">
-                    Visuels &amp; Galerie Studio
+                    Photos &amp; Nuances
                   </h2>
                 </div>
-                <span className="text-[10.5px] text-[#6B7280]">
-                  Photo principale + max 3 photos
-                </span>
               </div>
 
-              {/* Photo Principale Studio */}
-              <div>
-                <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                  Photo Principale (Studio) *
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    required
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    placeholder="Ex: /decor-honeycomb-calligraphy.webp ou https://..."
-                    className="flex-1 bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] font-mono text-[11px] outline-none focus:border-[#6d381e] shadow-2xs"
-                  />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageFileUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2.5 rounded-xl border border-[#E9DCD5] bg-white hover:bg-stone-50 text-xs font-bold text-[#6d381e] flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs"
-                    title="Choisir une photo depuis votre appareil"
-                  >
-                    <UploadCloud className="w-4 h-4 text-[#ba4e1a]" />
-                    <span>Importer</span>
-                  </button>
+              {/* Zone d'importation Drag & Drop (Aucune saisie manuelle d'URL) */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processImageFiles(e.dataTransfer.files);
+                  }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative border-2 border-dashed rounded-3xl p-6 sm:p-7 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
+                  isDragOver
+                    ? "border-[#ba4e1a] bg-[#ba4e1a]/5 scale-[1.01]"
+                    : "border-[#E9DCD5] hover:border-[#ba4e1a]/70 hover:bg-[#FAF7F2]/60 bg-[#FAF7F2]/30"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      processImageFiles(e.target.files);
+                      e.target.value = "";
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#E9DCD5] flex items-center justify-center text-[#ba4e1a] shadow-xs transition">
+                  {isProcessingImages ? (
+                    <Sparkles className="w-6 h-6 text-[#ba4e1a] animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-6 h-6 text-[#ba4e1a]" />
+                  )}
+                </div>
+
+                <div className="space-y-0.5">
+                  <p className="text-sm font-bold text-[#1F2937]">
+                    {isProcessingImages
+                      ? "Extraction chromatique & analyse des pièces en cours..."
+                      : "Cliquez pour importer ou glissez-déposez vos photos ici"}
+                  </p>
+                  <p className="text-xs text-[#6B7280]">
+                    Glissez-déposez vos photos ici ou cliquez pour importer (PNG, JPG, WEBP).
+                  </p>
                 </div>
               </div>
 
-              {/* Photos Additionnelles */}
-              <div className="space-y-2 pt-1">
-                <label className="block font-bold text-xs text-[#1F2937]">
-                  Photos Secondaires d&apos;Ambiance (Optionnel)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newAddImageUrl}
-                    onChange={(e) => setNewAddImageUrl(e.target.value)}
-                    placeholder="https://... ou /images/products/..."
-                    className="flex-1 bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] shadow-2xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddImage}
-                    disabled={!newAddImageUrl.trim() || additionalImages.length >= 3}
-                    className="px-4 py-2.5 bg-[#6d381e] hover:bg-[#542a15] text-white rounded-xl text-xs font-bold transition disabled:opacity-40 cursor-pointer shadow-2xs"
-                  >
-                    Ajouter
-                  </button>
-                </div>
+              {/* Liste détaillée des Variantes & Photos importées */}
+              {imageVariants.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <label className="block font-bold text-xs text-[#1F2937]">
+                    Pièces et finitions importées ({imageVariants.length}) :
+                  </label>
 
-                {additionalImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    {additionalImages.map((imgUrl, i) => (
-                      <div
-                        key={i}
-                        className="relative aspect-square rounded-2xl overflow-hidden border border-[#E9DCD5] group bg-white flex items-center justify-center p-1.5 shadow-2xs"
-                      >
-                        <Image src={imgUrl} alt="Vue additionnelle" fill className="object-contain p-1" sizes="100px" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAddImage(i)}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center transition cursor-pointer"
-                          title="Supprimer la photo"
+                  <div className="space-y-3">
+                    {imageVariants.map((variant, index) => {
+                      return (
+                        <div
+                          key={variant.id}
+                          className="p-4 rounded-2xl border border-[#E9DCD5] shadow-2xs hover:border-stone-300 bg-white flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-all"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                          {/* Miniature */}
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-[#E9DCD5] bg-stone-50 shrink-0 flex items-center justify-center">
+                            <Image
+                              src={variant.url}
+                              alt={`Photo ${index + 1}`}
+                              fill
+                              className="object-contain p-1"
+                              sizes="96px"
+                            />
+                          </div>
+
+                          {/* Détails : 1. Couleur (Pastille + Fond + Calligraphie + Nom sur 1 ligne) + 2. Dimensions & Supprimer sur 1 ligne */}
+                          <div className="flex-1 min-w-0 space-y-2.5 w-full">
+                            {/* Ligne 1: Couleur (Pastille bicolore, sélecteurs Fond/Calligraphie et nom de la nuance sur la même ligne) */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] font-bold text-[#6B7280] flex items-center gap-1 shrink-0">
+                                <Palette className="w-3.5 h-3.5 text-[#ba4e1a]" />
+                                Couleur :
+                              </span>
+
+                              {/* Pastille bicolore */}
+                              <div
+                                className="relative w-7 h-7 rounded-full border border-black/15 shadow-2xs overflow-hidden shrink-0"
+                                style={{
+                                  background: `linear-gradient(90deg, ${variant.bgHex || "#1C1917"} 50%, ${variant.accentHex || variant.colorHex || "#D4AF37"} 50%)`,
+                                }}
+                                title="Pastille bicolore : Fond à gauche, Calligraphie à droite"
+                              />
+
+                              {/* Deux sélecteurs de teintes (Fond / Calligraphie) */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                <label
+                                  className="flex items-center gap-1 bg-stone-50 border border-[#E9DCD5] px-2 py-1 rounded-lg cursor-pointer hover:bg-stone-100 transition shadow-2xs text-[10.5px]"
+                                  title="Changer la couleur du fond (Moitié gauche)"
+                                >
+                                  <span className="text-[10px] font-semibold text-stone-700">Fond:</span>
+                                  <span
+                                    className="w-3 h-3 rounded-full border border-black/20"
+                                    style={{ backgroundColor: variant.bgHex || "#1C1917" }}
+                                  />
+                                  <input
+                                    type="color"
+                                    value={variant.bgHex || "#1C1917"}
+                                    onChange={(e) => handleUpdateVariantBgHex(variant.id, e.target.value)}
+                                    className="hidden"
+                                  />
+                                </label>
+
+                                <label
+                                  className="flex items-center gap-1 bg-stone-50 border border-[#E9DCD5] px-2 py-1 rounded-lg cursor-pointer hover:bg-stone-100 transition shadow-2xs text-[10.5px]"
+                                  title="Changer la couleur de la calligraphie (Moitié droite)"
+                                >
+                                  <span className="text-[10px] font-semibold text-stone-700">Calligraphie:</span>
+                                  <span
+                                    className="w-3 h-3 rounded-full border border-black/20"
+                                    style={{ backgroundColor: variant.accentHex || variant.colorHex || "#D4AF37" }}
+                                  />
+                                  <input
+                                    type="color"
+                                    value={variant.accentHex || variant.colorHex || "#D4AF37"}
+                                    onChange={(e) => handleUpdateVariantAccentHex(variant.id, e.target.value)}
+                                    className="hidden"
+                                  />
+                                </label>
+                              </div>
+
+                              {/* Nom de la nuance sur la même ligne */}
+                              <input
+                                type="text"
+                                value={variant.colorName}
+                                onChange={(e) => handleUpdateVariantColorName(variant.id, e.target.value)}
+                                placeholder="Nom de la nuance (ex: Blanc Épuré & Doré)"
+                                className="flex-1 min-w-[140px] bg-white border border-[#E9DCD5] rounded-xl px-3 py-1 text-xs text-[#1F2937] font-semibold outline-none focus:border-[#6d381e] shadow-2xs"
+                              />
+                            </div>
+
+                            {/* Ligne 2: Dimensions + Bouton Supprimer ensemble sur la même ligne */}
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="text-[11px] font-bold text-[#6B7280] flex items-center gap-1 shrink-0">
+                                <Ruler className="w-3.5 h-3.5 text-[#ba4e1a]" />
+                                Dimensions :
+                              </span>
+                              <input
+                                type="text"
+                                required
+                                value={variant.dimensions}
+                                onChange={(e) => handleUpdateVariantDimensions(variant.id, e.target.value)}
+                                placeholder="Ex: 80 cm × 50 cm ou Ø 45 cm"
+                                className="flex-1 min-w-0 bg-white border border-[#E9DCD5] rounded-xl px-3 py-1 text-xs text-[#1F2937] font-semibold outline-none focus:border-[#6d381e] shadow-2xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariant(variant.id)}
+                                className="p-1.5 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
+                                title="Supprimer cette photo"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+
+                  {/* Aperçu direct des pastilles bicolores dans Info Produit */}
+                  <div className="p-3.5 bg-[#FAF7F2] rounded-2xl border border-[#E9DCD5] flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Palette className="w-4 h-4 text-[#ba4e1a]" />
+                      <span className="text-xs font-bold text-[#1F2937]">
+                        Pastilles bicolores dans la fiche produit (&quot;Info Produit&quot;) :
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      {imageVariants.map((v) => (
+                        <div
+                          key={v.id}
+                          className="group relative flex items-center"
+                          title={`${v.colorName} - ${v.dimensions || "Dimensions non définies"}`}
+                        >
+                          <div
+                            className="w-7 h-7 rounded-full border border-black/15 shadow-2xs transition-transform hover:scale-110 cursor-pointer overflow-hidden"
+                            style={{
+                              background: `linear-gradient(90deg, ${v.bgHex || "#1C1917"} 50%, ${v.accentHex || v.colorHex || "#D4AF37"} 50%)`,
+                            }}
+                          />
+                          <span className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition pointer-events-none bg-[#1c1917] text-white text-[10px] font-bold py-0.5 px-2 rounded whitespace-nowrap shadow-md z-30">
+                            {v.colorName} {v.dimensions ? `(${v.dimensions})` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Section 5: Matières, Dimensions & Fiche Technique (Artisan is fixed to master artisan) */}
@@ -851,7 +1411,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-xs text-[#1F2937] mb-1.5">
-                    Dimensions de la pièce
+                    Dimensions globales / par défaut de la pièce
                   </label>
                   <input
                     type="text"
@@ -860,6 +1420,11 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
                     placeholder="Ex: 250 cm x 160 cm, Diamètre 45 cm..."
                     className="w-full bg-white border border-[#E9DCD5] rounded-xl px-4 py-2.5 text-xs text-[#1F2937] outline-none focus:border-[#6d381e] transition shadow-2xs"
                   />
+                  <span className="text-[10px] text-[#6B7280] mt-1 block">
+                    {imageVariants.length > 0
+                      ? "Synchronisé avec la photo principale. Vos pièces ci-dessus conservent leurs dimensions spécifiques."
+                      : "Sert de dimension par défaut si aucune photo avec dimensions n'est importée."}
+                  </span>
                 </div>
               </div>
 
@@ -910,7 +1475,7 @@ export const ProductFormPage: React.FC<ProductFormPageProps> = ({
 
           {/* LA PARTIE RIGHT: Exact Boutique Product Card Preview with Dimensions 1:1 + Sticky Actions */}
           <div className="w-full lg:w-[285px] shrink-0 lg:sticky lg:top-6 space-y-3">
-            {/* Exact Boutique Product Card Dimensions (w-[285px]) */}
+            {/* Aperçu direct sous la forme exacte de la carte produit boutique */}
             <div
               className="w-[285px] mx-auto select-none"
               onClick={(e) => {

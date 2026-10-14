@@ -7,12 +7,50 @@
   --color-terracotta: #c4622d;
   --color-gold: #d4a853;
   --color-border-subtle: #f0eae1;
+
+  --font-serif: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
+  --font-georgia: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-arabic: var(--font-arabic), "Amiri", serif;
+}
+
+/* Fallback @font-face pour Georgia Regular & Bold */
+@font-face {
+  font-family: "Georgia";
+  src: url("/fonts/Georgia-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Georgia";
+  src: url("/fonts/Georgia-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Georgia";
+  src: url("/fonts/Georgia-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Georgia";
+  src: url("/fonts/Georgia-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
 }
 
 html, body {
   background-color: #ffffff;
   color: #000000;
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
   overflow-x: clip;
   -ms-overflow-style: none;
   scrollbar-width: none;

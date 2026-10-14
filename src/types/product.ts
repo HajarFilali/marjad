@@ -25,11 +25,37 @@ export interface Product {
   };
   details?: {
     dimensions?: string;
+    dimensionsList?: string[];
     material?: string;
     origin?: string;
     technique?: string;
   };
+  colors?: ProductColor[];
+  imageVariants?: ProductImageVariant[];
   tags?: string[];
+}
+
+export interface ProductColor {
+  id: string;
+  name: string;
+  hex: string;
+  bgHex?: string;
+  accentHex?: string;
+  bgGradient?: string;
+  textColor?: string;
+  dimensions?: string;
+  imageIndex?: number;
+  imageUrl?: string;
+}
+
+export interface ProductImageVariant {
+  id: string;
+  url: string;
+  dimensions?: string;
+  colorName?: string;
+  colorHex?: string;
+  bgHex?: string;
+  accentHex?: string;
 }
 
 export interface Category {

@@ -23,6 +23,7 @@ import {
   Compass,
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import { getContactPhone, getContactEmail } from "@/lib/contactConfig";
 
 type ContactSubject = "sur-mesure" | "suivi" | "b2b" | "general";
 
@@ -151,7 +152,8 @@ export default function ContactPage() {
     });
   };
 
-  const whatsappUrl = `https://wa.me/212661000000?text=${encodeURIComponent(
+  const dynamicPhone = getContactPhone();
+  const whatsappUrl = `https://wa.me/${dynamicPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
     `Bonjour MARJAD, je vous contacte concernant : ${currentOption.label}.`
   )}`;
 
