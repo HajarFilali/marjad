@@ -81,13 +81,13 @@ export function ProductCard({
     const wrapperProps = disableLink
       ? {
           className:
-            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-300 overflow-hidden select-none",
+            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-none hover:rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden select-none",
         }
       : {
           href: `/produit/${product.slug}`,
           prefetch: true,
           className:
-            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-300 overflow-hidden cursor-pointer select-none",
+            "group relative flex flex-col sm:flex-row w-full sm:min-h-[235px] rounded-none hover:rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden cursor-pointer select-none",
         };
 
     return (
@@ -152,11 +152,11 @@ export function ProductCard({
         <div className="p-4 sm:p-5 lg:p-6 flex-1 flex flex-col justify-between bg-white border-t sm:border-t-0 sm:border-l border-[#ebd8be]/40">
           <div>
             {/* Catégorie */}
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#ba4e1a] block mb-1">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#ba4e1a] block mb-1">
               {product.category?.trim() ? (
                 product.category
               ) : (
-                <span className="text-[#a8a29e]/60 font-medium tracking-widest text-[11px]">
+                <span className="text-[#a8a29e]/60 font-medium tracking-wider text-[11px]">
                   ···
                 </span>
               )}
@@ -195,7 +195,7 @@ export function ProductCard({
                 {product.price && product.price > 0 ? (
                   formatPrice(product.price)
                 ) : (
-                  <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-widest">
+                  <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-wider">
                     ··· MAD
                   </span>
                 )}
@@ -269,13 +269,13 @@ export function ProductCard({
   const gridWrapperProps = disableLink
     ? {
         className:
-          "group relative flex flex-col h-full rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-400 overflow-hidden select-none",
+          "group relative flex flex-col h-full rounded-none hover:rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden select-none",
       }
     : {
         href: `/produit/${product.slug}`,
         prefetch: true,
         className:
-          "group relative flex flex-col h-full rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-400 overflow-hidden cursor-pointer select-none",
+          "group relative flex flex-col h-full rounded-none hover:rounded-3xl bg-white border border-[#ebd8be]/70 shadow-xs hover:shadow-xl hover:shadow-[#ba4e1a]/12 hover:border-[#ba4e1a]/40 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden cursor-pointer select-none",
       };
 
   return (
@@ -365,11 +365,11 @@ export function ProductCard({
           }`}
         >
           <div>
-            <span className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-widest text-[#ba4e1a] block mb-1">
+            <span className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wider text-[#ba4e1a] block mb-1">
               {product.category?.trim() ? (
                 product.category
               ) : (
-                <span className="text-[#a8a29e]/60 font-medium tracking-widest text-[11px]">
+                <span className="text-[#a8a29e]/60 font-medium tracking-wider text-[11px]">
                   ···
                 </span>
               )}
@@ -399,7 +399,7 @@ export function ProductCard({
                   {product.price && product.price > 0 ? (
                     formatPrice(product.price)
                   ) : (
-                    <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-widest">
+                    <span className="text-[#a8a29e]/70 font-sans font-bold text-xs tracking-wider">
                       ··· MAD
                     </span>
                   )}

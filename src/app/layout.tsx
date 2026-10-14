@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
-import { Plus_Jakarta_Sans, Amiri } from "next/font/google";
+import { Montserrat, Amiri } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -12,7 +12,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { WishlistDrawer } from "@/components/cart/WishlistDrawer";
 import { MetaPixel } from "@/components/common/MetaPixel";
 
-// 1. Font Principal (Français) : Georgia Regular & Bold
+// 1. Font Éditorial Luxe & Titres (30%) : Georgia Regular, Italic & Bold
 const georgia = localFont({
   src: [
     {
@@ -40,10 +40,11 @@ const georgia = localFont({
   display: "swap",
 });
 
-// 2. Font Secondaire Complémentaire (Modern UI / Sans-serif) : Plus Jakarta Sans
-const jakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-sans",
+// 2. Font Principal UI, Textes & Navigation (70%) : Montserrat Regular, Medium, SemiBold & Bold
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -78,7 +79,7 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${georgia.variable} ${jakartaSans.variable} ${amiri.variable} h-full scroll-smooth`}
+      className={`${georgia.variable} ${montserrat.variable} ${amiri.variable} h-full scroll-smooth`}
     >
       <head>
         <Script

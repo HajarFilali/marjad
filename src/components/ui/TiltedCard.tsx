@@ -97,7 +97,9 @@ export function TiltedCard({
       {/* Dynamic 3D Glare Sheen following cursor */}
       {showGlare && (
         <div
-          className="pointer-events-none absolute inset-0 rounded-3xl z-30 transition-opacity duration-300 overflow-hidden"
+          className={`pointer-events-none absolute inset-0 z-30 transition-[opacity,border-radius] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+            isHovered ? "rounded-3xl" : "rounded-none"
+          }`}
           style={{
             opacity: glare.opacity,
             background: `radial-gradient(circle 260px at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%)`,

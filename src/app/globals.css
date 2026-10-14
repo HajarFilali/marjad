@@ -10,11 +10,12 @@
 
   --font-serif: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
   --font-georgia: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
-  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-montserrat), "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-montserrat: var(--font-montserrat), "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-arabic: var(--font-arabic), "Amiri", serif;
 }
 
-/* Fallback @font-face pour Georgia Regular & Bold */
+/* Fallback @font-face pour Georgia Regular & Bold (30% du site : Titres de prestige & Signature) */
 @font-face {
   font-family: "Georgia";
   src: url("/fonts/Georgia-Regular.ttf") format("truetype");
@@ -47,13 +48,82 @@
   font-display: swap;
 }
 
+/* =====================================================================
+   TYPOGRAPHIE & LETTER-SPACING DE HAUTE PRÉCISION (30% Georgia / 70% Montserrat)
+   ===================================================================== */
+
 html, body {
   background-color: #ffffff;
   color: #000000;
-  font-family: var(--font-georgia), "Georgia", "Times New Roman", Times, serif;
+  font-family: var(--font-montserrat), "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.012em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: clip;
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* 30% Titres & Accents Éditoriaux (Georgia) : Kerning serré, sculptural et prestigieux */
+h1, h2, h3, h4, .font-serif {
+  letter-spacing: -0.022em;
+}
+
+/* Grands titres d'impact (Hero H1, Sections H2) */
+h1 {
+  letter-spacing: -0.026em;
+}
+
+h2 {
+  letter-spacing: -0.02em;
+}
+
+/* Titres en majuscules (ex: MARJAD, sous-titres) : ouverture aérée et élégante */
+h1.uppercase, h2.uppercase, h3.uppercase, .font-serif.uppercase {
+  letter-spacing: 0.05em;
+}
+
+/* Paragraphes, descriptions & textes courants (Montserrat) : rythme de lecture naturel */
+p, .prose {
+  letter-spacing: -0.008em;
+  line-height: 1.62;
+}
+
+/* 70% Éléments UI : Badges, Catégories, Filtres & Micro-labels en Majuscules */
+.uppercase,
+[class*="uppercase"] {
+  letter-spacing: 0.055em;
+}
+
+/* Micro-badges et tags très petits (9px - 11px) */
+span.uppercase,
+span[class*="uppercase"] {
+  letter-spacing: 0.06em;
+}
+
+/* Boutons & Liens d'action (Call-To-Action) : netteté et assurance */
+button,
+a[role="button"],
+.btn {
+  letter-spacing: 0.012em;
+}
+
+/* Chiffres, Prix & Montants en MAD : Chiffres compacts sans espacement parasite */
+.font-extrabold,
+.font-black,
+[class*="MAD"] {
+  letter-spacing: -0.018em;
+}
+
+/* Champs de saisie & Formulaires */
+input, textarea, select {
+  letter-spacing: -0.01em;
+}
+
+/* Barre de navigation (Navbar) */
+nav a, nav button {
+  letter-spacing: 0.005em;
 }
 
 /* Force all checkboxes across the app to brand brown */
