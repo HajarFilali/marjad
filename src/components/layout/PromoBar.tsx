@@ -93,13 +93,31 @@ export function PromoBar() {
     }
   };
 
+  const [translateY, setTranslateY] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+
   useEffect(() => {
+    let ticking = false;
+    let prevOffset = -1;
+    let prevScrolled = false;
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      if (scrollY < 35 && !window.location.hash) {
-        setIsScrolled(false);
-      } else if (scrollY > 40 || Boolean(window.location.hash)) {
-        setIsScrolled(true);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          const offset = Math.min(36, Math.max(0, scrollY));
+          const scrolled = scrollY > 30;
+          if (offset !== prevOffset) {
+            setTranslateY(-offset);
+            setOpacity(Math.max(0, 1 - offset / 28));
+            prevOffset = offset;
+          }
+          if (scrolled !== prevScrolled) {
+            setIsScrolled(scrolled);
+            prevScrolled = scrolled;
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
@@ -137,8 +155,6 @@ export function PromoBar() {
   // Repeat sequence so that half the track easily covers wide screens
   const trackItems = [...items, ...items, ...items, ...items];
 
-  const isVisible = !isScrolled;
-
   // Hide PromoBar completely on /login, /admin and /profile pages
   if (pathname === "/login" || pathname?.startsWith("/admin") || pathname === "/profile") {
     return null;
@@ -146,13 +162,13 @@ export function PromoBar() {
 
   return (
     <div
-      className={`promo-bar-container fixed top-0 left-0 right-0 w-full bg-[#000000] text-[#ffffff] select-none z-[101] border-b border-[#ebd8be]/15 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        !isVisible
-          ? "opacity-0 -translate-y-full pointer-events-none"
-          : "opacity-100 translate-y-0 pointer-events-auto"
-      }`}
+      className="promo-bar-container fixed top-0 left-0 right-0 w-full bg-[#000000] text-[#ffffff] select-none z-[101] border-b border-[#ebd8be]/15"
       style={{
         height: "36px",
+        transform: `translateY(${translateY}px)`,
+        opacity,
+        pointerEvents: opacity < 0.1 ? "none" : "auto",
+        willChange: "transform, opacity",
       }}
     >
       <div className="w-full h-full flex items-center justify-between">

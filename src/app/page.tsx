@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { MarjadIntroLoader } from "@/components/home/MarjadIntroLoader";
 import { HeroSection } from "@/components/home/HeroSection";
 import { AccordionGallery } from "@/components/home/AccordionGallery";
 import { ProductsSection } from "@/components/home/ProductsSection";
@@ -19,6 +20,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#ffffff]">
+      {/* 0. Motion Logo Intro Loader */}
+      <MarjadIntroLoader />
+
       {/* 1. Hero Section (Screenshot 3 Layout) */}
       <HeroSection />
 
@@ -31,10 +35,10 @@ export default function Home() {
       {/* 4. À Propos Section (Screenshot 1 Layout: Sliced Mosaic Image Collage) */}
       <AboutSection />
 
-      {/* 5. Customer Videos / Reels Section (Staggered Zigzag Vertical Cards) */}
+      {/* 5. Expériences Clients en Vidéo (Customer Videos / Reels Section) */}
       <CustomerVideosSection />
 
-      {/* 6. Contact & Atelier Section */}
+      {/* 6. Contact & Confection Sur-Mesure Section */}
       <ContactSection />
     </div>
   );

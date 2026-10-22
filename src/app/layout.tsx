@@ -79,14 +79,14 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${georgia.variable} ${montserrat.variable} ${amiri.variable} h-full scroll-smooth`}
+      className={`${georgia.variable} ${montserrat.variable} ${amiri.variable} h-full`}
     >
       <head>
         <Script
           id="scroll-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var y=window.scrollY;var hasHash=!!window.location.hash;if(y>40||hasHash){document.documentElement.classList.add('is-scrolled-page');}else{document.documentElement.classList.remove('is-scrolled-page');}function saveY(){try{var sy=window.scrollY;sessionStorage.setItem('marjad_scrolled',String(sy));if(sy>40||!!window.location.hash){document.documentElement.classList.add('is-scrolled-page');}else if(sy<35&&!window.location.hash){document.documentElement.classList.remove('is-scrolled-page');}}catch(e){}}window.addEventListener('scroll',saveY,{passive:true});window.addEventListener('beforeunload',saveY);}catch(e){}})();`,
+            __html: `(function(){try{var y=window.scrollY;var hasHash=!!window.location.hash;if(y>40||hasHash){document.documentElement.classList.add('is-scrolled-page');}else{document.documentElement.classList.remove('is-scrolled-page');}var ticking=false;function updateClass(){if(window.scrollY>40||!!window.location.hash){document.documentElement.classList.add('is-scrolled-page');}else if(window.scrollY<35&&!window.location.hash){document.documentElement.classList.remove('is-scrolled-page');}ticking=false;}function saveY(){if(!ticking){window.requestAnimationFrame(updateClass);ticking=true;}}window.addEventListener('scroll',saveY,{passive:true});window.addEventListener('beforeunload',function(){try{sessionStorage.setItem('marjad_scrolled',String(window.scrollY));}catch(e){}});}catch(e){}})();`,
           }}
         />
       </head>

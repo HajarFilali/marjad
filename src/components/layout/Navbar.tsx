@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { ShoppingBag, Heart, Menu, X, ArrowRight, Users, Banknote, Truck, ShieldCheck, Search, ChevronDown } from "lucide-react";
+import {
+  ShoppingBag,
+  Heart,
+  Menu,
+  X,
+  Search,
+  ChevronDown,
+} from "lucide-react";
 import { SearchModal } from "@/components/search/SearchModal";
 import { DECOR_PRODUCTS } from "@/data/mockProducts";
 
@@ -20,26 +27,24 @@ const STORE_NAV_CATEGORIES = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { openCart, totalItems } = useCart();
+  const { totalItems } = useCart();
   const { wishlistCount, openWishlist } = useWishlist();
   const [currentLang, setCurrentLang] = useState<"FR" | "AR">("FR");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Initialize to false on both server and client for deterministic hydration match
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const bgRef = useRef<HTMLDivElement>(null);
 
-  // Active section tracking ("accueil", "boutique", "a-propos", "contact")
+  // Active section tracking
   const [activeSection, setActiveSection] = useState<string>("accueil");
 
-  // Dropdown Catégories (Vinillia style)
+  // Dropdown Catégories
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calcul dynamique des compteurs réels de produits pour chaque catégorie
-  const navCategories = React.useMemo(() => {
+  // Dynamic counts for each category
+  const navCategories = useMemo(() => {
     return STORE_NAV_CATEGORIES.map((cat) => {
       const normSlug = cat.slug
         .toLowerCase()
@@ -66,7 +71,7 @@ export function Navbar() {
     });
   }, []);
 
-  // Fermeture du dropdown lors du clic extérieur ou de l'appui sur Escape
+  // Close dropdown on outside click or Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -86,177 +91,67 @@ export function Navbar() {
     };
   }, []);
 
-  // Fermeture automatique lors d'un changement de route
+  // Auto-close dropdowns on route changes
   useEffect(() => {
     setIsCategoriesOpen(false);
     setMobileCategoriesOpen(false);
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Navigation Links: Accueil, Boutique, À propos, Contact
+  const [headerTop, setHeaderTop] = useState<number>(36);
+  const [heroRevealed, setHeroRevealed] = useState(false);
+
+  // Synchronize with Hero reveal state
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).__MARJAD_REVEALED__) {
+      setHeroRevealed(true);
+    }
+    const handleHeroState = (e: any) => {
+      setHeroRevealed(e.detail.isRevealed);
+    };
+    window.addEventListener("marjad-hero-state", handleHeroState);
+    return () => window.removeEventListener("marjad-hero-state", handleHeroState);
+  }, []);
+
+  const isDark = pathname === "/" && !heroRevealed;
+
+  // Sync scroll state continuously with PromoBar without redundant re-renders
+  useEffect(() => {
+    let ticking = false;
+    let prevTop = -1;
+    let prevScrolled = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          const topVal = Math.max(0, 36 - scrollY);
+          const scrolled = scrollY > 30;
+          if (topVal !== prevTop) {
+            setHeaderTop(topVal);
+            prevTop = topVal;
+          }
+          if (scrolled !== prevScrolled) {
+            setIsScrolled(scrolled);
+            prevScrolled = scrolled;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Navigation Links
   const navLinks = [
     { id: "accueil", label: "Accueil", href: "/" },
     { id: "boutique", label: "Boutique", href: "/boutique" },
     { id: "a-propos", label: "À propos", href: "/a-propos" },
     { id: "contact", label: "Contact", href: "/contact" },
   ];
-
-  // Synchronous layout check to sync state right after hydration & route changes
-  const useIsomorphicLayoutEffect =
-    typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
-
-  useIsomorphicLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const scrollY = window.scrollY;
-    const hasHash = Boolean(window.location.hash);
-    const isScrolledPage = scrollY > 40 || hasHash;
-
-    if (pathname === "/contact") {
-      setActiveSection("contact");
-    } else if (pathname === "/boutique") {
-      setActiveSection("boutique");
-    } else if (pathname === "/a-propos") {
-      setActiveSection("a-propos");
-    } else if (pathname === "/login") {
-      setActiveSection("");
-    } else if (hasHash) {
-      setActiveSection(window.location.hash.replace("#", ""));
-    } else {
-      setActiveSection("accueil");
-    }
-
-    if (isScrolledPage) {
-      document.documentElement.classList.add("is-scrolled-page");
-      setIsScrolled(true);
-      if (bgRef.current) {
-        bgRef.current.style.background = "#ffffff";
-      }
-    } else {
-      document.documentElement.classList.remove("is-scrolled-page");
-      setIsScrolled(false);
-      if (bgRef.current) {
-        bgRef.current.style.background =
-          pathname === "/"
-            ? "linear-gradient(90deg, #ffffff 0%, #ffffff 28%, rgba(255, 255, 255, 0.70) 54%, rgba(255, 255, 255, 0.35) 100%)"
-            : "#ffffff";
-      }
-    }
-  }, [pathname]);
-
-  // Scroll listener for hero loading background, promo bar dissolve threshold, and section spy
-  useEffect(() => {
-    let animationFrameId: number;
-
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const effectiveY = scrollY;
-
-      if (pathname === "/") {
-        const heroSection = document.querySelector("section");
-        const maxScroll = heroSection ? Math.max(300, heroSection.offsetHeight - 120) : 450;
-        const p = Math.min(1, Math.max(0, effectiveY / maxScroll));
-
-        if (bgRef.current) {
-          if (p >= 1) {
-            bgRef.current.style.background = "#ffffff";
-          } else {
-            const solidWhiteStop = 28 + p * 72;
-            const midStop = Math.min(100, solidWhiteStop + (100 - solidWhiteStop) * 0.40);
-            bgRef.current.style.background = `linear-gradient(90deg, #ffffff 0%, #ffffff ${solidWhiteStop.toFixed(1)}%, rgba(255, 255, 255, 0.70) ${midStop.toFixed(1)}%, rgba(255, 255, 255, 0.35) 100%)`;
-          }
-        }
-
-        // Active section on home page is always accueil (since À propos has its own dedicated page)
-        setActiveSection("accueil");
-
-        if (effectiveY < 35 && !window.location.hash) {
-          document.documentElement.classList.remove("is-scrolled-page");
-          try { sessionStorage.setItem("marjad_scrolled", "0"); } catch (e) {}
-          setIsScrolled(false);
-        } else if (effectiveY > 40 || Boolean(window.location.hash)) {
-          document.documentElement.classList.add("is-scrolled-page");
-          try { sessionStorage.setItem("marjad_scrolled", String(scrollY)); } catch (e) {}
-          setIsScrolled(true);
-        }
-      } else {
-        if (bgRef.current) {
-          bgRef.current.style.background = "#ffffff";
-        }
-        if (pathname === "/contact") {
-          setActiveSection("contact");
-        } else if (pathname === "/a-propos") {
-          setActiveSection("a-propos");
-        } else if (pathname === "/boutique") {
-          setActiveSection("boutique");
-        } else if (pathname === "/login") {
-          setActiveSection("");
-        } else {
-          setActiveSection("");
-        }
-        if (effectiveY < 35 && !window.location.hash) {
-          document.documentElement.classList.remove("is-scrolled-page");
-          try { sessionStorage.setItem("marjad_scrolled", "0"); } catch (e) {}
-          setIsScrolled(false);
-        } else if (effectiveY > 40 || Boolean(window.location.hash)) {
-          document.documentElement.classList.add("is-scrolled-page");
-          try { sessionStorage.setItem("marjad_scrolled", String(scrollY)); } catch (e) {}
-          setIsScrolled(true);
-        }
-      }
-    };
-
-    const onScroll = () => {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = requestAnimationFrame(handleScroll);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    handleScroll();
-
-    // Catch asynchronous browser scroll restoration ticks
-    const timers = [30, 80, 150, 300, 600, 1000].map((delay) =>
-      setTimeout(handleScroll, delay)
-    );
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      cancelAnimationFrame(animationFrameId);
-      timers.forEach(clearTimeout);
-    };
-  }, [pathname]);
-
-  const handleNavLinkClick = (e: React.MouseEvent, link: { id: string; href: string }) => {
-    if (link.id === "accueil") {
-      setActiveSection("accueil");
-      setIsScrolled(false);
-      document.documentElement.classList.remove("is-scrolled-page");
-      try { sessionStorage.setItem("marjad_scrolled", "0"); } catch (e) {}
-      if (pathname === "/") {
-        e.preventDefault();
-        if (window.location.hash) {
-          window.history.pushState(null, "", "/");
-        }
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    } else if (link.id === "a-propos") {
-      setActiveSection("a-propos");
-      setIsScrolled(true);
-      document.documentElement.classList.add("is-scrolled-page");
-      try { sessionStorage.setItem("marjad_scrolled", "999"); } catch (e) {}
-    } else if (link.id === "contact") {
-      setActiveSection("contact");
-    } else if (link.id === "boutique") {
-      setActiveSection("boutique");
-    }
-  };
-
-  const isFusedHero =
-    pathname === "/" &&
-    !isScrolled &&
-    !mobileMenuOpen;
 
   // Hide Navbar completely on /login, /admin and /profile pages
   if (pathname === "/login" || pathname?.startsWith("/admin") || pathname === "/profile") {
@@ -265,114 +160,101 @@ export function Navbar() {
 
   return (
     <>
-    <nav
-      className={`fixed left-1/2 -translate-x-1/2 z-[100] w-[92%] sm:w-[94%] max-w-7xl transition-all duration-500 ease-out border-[#ebd8be]/80 ${
-        isScrolled
-          ? "top-3 sm:top-4 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.12)]"
-          : "top-[44px] sm:top-[48px] shadow-[0_16px_36px_-10px_rgba(0,0,0,0.08)]"
-      }`}
-      style={{
-        backdropFilter: "blur(24px) saturate(160%)",
-        WebkitBackdropFilter: "blur(24px) saturate(160%)",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "rgba(235, 216, 190, 0.8)",
-        borderTopLeftRadius: mobileMenuOpen ? "24px" : "9999px",
-        borderTopRightRadius: mobileMenuOpen ? "24px" : "9999px",
-        borderBottomRightRadius: mobileMenuOpen ? "24px" : "9999px",
-        borderBottomLeftRadius: mobileMenuOpen ? "24px" : isFusedHero ? "0px" : "9999px",
-        transition: "all 500ms cubic-bezier(0.16, 1, 0.3, 1)",
-      }}
-    >
-      {/* Scroll-Linked Loading Background: White on the left (matching neck & card) expands to the right */}
-      <div
-        ref={bgRef}
-        className="nav-bg-overlay absolute inset-0 pointer-events-none z-0 transition-all duration-500"
+      <header
+        className="fixed left-0 right-0 z-[100] pointer-events-none"
         style={{
-          borderTopLeftRadius: mobileMenuOpen ? "24px" : "9999px",
-          borderTopRightRadius: mobileMenuOpen ? "24px" : "9999px",
-          borderBottomRightRadius: mobileMenuOpen ? "24px" : "9999px",
-          borderBottomLeftRadius: mobileMenuOpen ? "24px" : isFusedHero ? "0px" : "9999px",
-          transition: "all 500ms cubic-bezier(0.16, 1, 0.3, 1)",
-          background:
-            "linear-gradient(90deg, #ffffff 0%, #ffffff 28%, rgba(255, 255, 255, 0.70) 54%, rgba(255, 255, 255, 0.35) 100%)",
+          top: `${headerTop}px`,
+          willChange: "top",
         }}
-      />
-
-      <div className="relative z-40 w-full px-5 sm:px-7 lg:px-9">
-        {/* Sleek height: h-14 sm:h-16 */}
-        <div className="flex items-center justify-between h-14 sm:h-16">
-
-          {/* Mobile menu trigger */}
-          <div className="flex items-center md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 text-[#1c1917] hover:text-[#c4622d] transition-colors"
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {/* Left: Official Logo */}
-          <div className="flex items-center">
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between h-13 sm:h-14">
+          {/* ========================================================================= */}
+          {/* 1. LEFT: OFFICIAL LOGO (White in dark stage, Terracotta on reveal/pages) */}
+          {/* ========================================================================= */}
+          <div className="pointer-events-auto flex items-center h-full">
             <Link
               href="/"
-              onClick={(e) => {
+              onClick={() => {
                 setActiveSection("accueil");
-                setIsScrolled(false);
-                document.documentElement.classList.remove("is-scrolled-page");
-                try { sessionStorage.setItem("marjad_scrolled", "0"); } catch (e) {}
                 if (pathname === "/") {
-                  e.preventDefault();
-                  if (window.location.hash) {
-                    window.history.pushState(null, "", "/");
-                  }
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
-              className="flex items-center group py-1"
+              className="relative flex items-center h-8 sm:h-9 lg:h-9.5 w-[115px] sm:w-[130px] lg:w-[140px] group transition-all duration-300 select-none"
             >
+              {/* White Logo (shown when navbar & hero are dark) */}
+              <Image
+                src="/logo-white.png"
+                alt="MARJAD - Sélection artisanale"
+                width={140}
+                height={36}
+                priority
+                className={`absolute inset-0 h-full w-auto object-contain transition-opacity duration-900 cubic-bezier(0.16, 1, 0.3, 1) group-hover:scale-102 ${
+                  isDark ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                }`}
+              />
+              {/* Authentic Terracotta / Brown Logo (shown on light background & revealed) */}
               <Image
                 src="/logo.png"
                 alt="MARJAD - Sélection artisanale"
-                width={135}
-                height={35}
+                width={140}
+                height={36}
                 priority
-                className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-102"
+                className={`absolute inset-0 h-full w-auto object-contain transition-opacity duration-900 cubic-bezier(0.16, 1, 0.3, 1) group-hover:scale-102 ${
+                  isDark ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
+                }`}
               />
             </Link>
           </div>
 
-          {/* Center: Links in French with Vinillia-Style Categories Dropdown */}
-          <div className="hidden md:flex items-center space-x-6 lg:space-x-7 absolute left-1/2 -translate-x-1/2">
+          {/* ========================================================================= */}
+          {/* 2. CENTER: FLUSH-TOP NAVBAR PILL (Rounded-b-[26px], perfect centerline) */}
+          {/* ========================================================================= */}
+          <nav
+            aria-label="Navigation principale"
+            className={`pointer-events-auto hidden md:flex items-center space-x-7 lg:space-x-9 px-8 sm:px-10 lg:px-12 h-full rounded-t-none rounded-b-[24px] sm:rounded-b-[28px] border-x border-b border-t-0 shadow-[0_8px_26px_-4px_rgba(0,0,0,0.12)] transition-all duration-900 cubic-bezier(0.16, 1, 0.3, 1) ${
+              isDark
+                ? "bg-[#141210]/85 border-white/10 text-white/90 backdrop-blur-md"
+                : "bg-white border-[#ebd8be]/45 text-[#1c1917]"
+            }`}
+          >
             {/* 1. Accueil */}
             <Link
               href="/"
-              onClick={(e) => handleNavLinkClick(e, { id: "accueil", href: "/" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
+              onClick={() => setActiveSection("accueil")}
+              className={`text-[13px] tracking-wide transition-colors relative py-0.5 font-semibold ${
                 pathname === "/" && activeSection === "accueil"
-                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
-                  : "text-[#1c1917] hover:text-[#c4622d]"
+                  ? "text-[#ba4e1a] font-bold"
+                  : isDark
+                  ? "text-white/85 hover:text-white"
+                  : "text-[#1c1917] hover:text-[#ba4e1a]"
               }`}
             >
               Accueil
+              {pathname === "/" && activeSection === "accueil" && (
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#ba4e1a] rounded-full" />
+              )}
             </Link>
 
             {/* 2. Boutique */}
             <Link
               href="/boutique"
-              onClick={(e) => handleNavLinkClick(e, { id: "boutique", href: "/boutique" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
+              onClick={() => setActiveSection("boutique")}
+              className={`text-[13px] tracking-wide transition-colors relative py-0.5 font-semibold ${
                 pathname === "/boutique"
-                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
-                  : "text-[#1c1917] hover:text-[#c4622d]"
+                  ? "text-[#ba4e1a] font-bold"
+                  : isDark
+                  ? "text-white/85 hover:text-white"
+                  : "text-[#1c1917] hover:text-[#ba4e1a]"
               }`}
             >
               Boutique
+              {pathname === "/boutique" && (
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#ba4e1a] rounded-full" />
+              )}
             </Link>
 
-            {/* 3. Catégories Dropdown (Exact Vinillia Reference: Chevron v / ^, White Card, Name on Left, Count (X) on Right) */}
+            {/* 3. Catégories Dropdown */}
             <div
               ref={dropdownRef}
               className="relative"
@@ -383,62 +265,55 @@ export function Navbar() {
               onMouseLeave={() => {
                 dropdownTimeoutRef.current = setTimeout(() => {
                   setIsCategoriesOpen(false);
-                }, 180);
+                }, 220);
               }}
             >
               <button
                 type="button"
-                onClick={() => setIsCategoriesOpen((prev) => !prev)}
-                className={`text-[13px] tracking-wide transition-colors relative py-1 flex items-center gap-1.5 cursor-pointer font-semibold ${
-                  isCategoriesOpen
-                    ? "text-[#c4622d] font-bold"
-                    : "text-[#1c1917] hover:text-[#c4622d]"
+                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                className={`flex items-center gap-1 text-[13px] tracking-wide font-semibold py-0.5 transition-colors cursor-pointer ${
+                  isCategoriesOpen || pathname.includes("category")
+                    ? "text-[#ba4e1a]"
+                    : isDark
+                    ? "text-white/85 hover:text-white"
+                    : "text-[#1c1917] hover:text-[#ba4e1a]"
                 }`}
                 aria-expanded={isCategoriesOpen}
                 aria-haspopup="true"
               >
                 <span>Catégories</span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 stroke-[2.2] ${
-                    isCategoriesOpen ? "rotate-180 text-[#c4622d]" : "text-[#1c1917]/70"
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isCategoriesOpen ? "rotate-180 text-[#ba4e1a]" : isDark ? "text-white/60" : "text-[#78716c]"
                   }`}
                 />
               </button>
 
-              {/* Dropdown Menu Card (Style Vinillia) */}
+              {/* Dropdown Menu */}
               {isCategoriesOpen && (
                 <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
-                  onMouseEnter={() => {
-                    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
-                  }}
-                  onMouseLeave={() => {
-                    dropdownTimeoutRef.current = setTimeout(() => {
-                      setIsCategoriesOpen(false);
-                    }, 180);
-                  }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2.5 w-64 z-50 animate-in fade-in zoom-in-95 duration-200"
+                  style={{ willChange: "transform, opacity" }}
                 >
-                  <div className="bg-white rounded-2xl p-1.5 sm:p-2 w-[225px] sm:w-[230px] border border-[#EDE9E6] shadow-[0_20px_45px_-10px_rgba(0,0,0,0.16)] flex flex-col space-y-0.5">
+                  <div className="bg-white/98 backdrop-blur-xl border border-[#ebd8be]/80 rounded-2xl p-2 shadow-[0_16px_36px_-10px_rgba(0,0,0,0.12)] space-y-0.5">
                     {navCategories.map((cat) => (
                       <Link
                         key={cat.slug}
                         href={`/boutique?category=${cat.slug}`}
                         onClick={() => {
                           setIsCategoriesOpen(false);
-                          setActiveSection("boutique");
                           if (typeof window !== "undefined") {
                             window.dispatchEvent(
                               new CustomEvent("marjad_category_selected", { detail: cat.slug })
                             );
-                            window.scrollTo({ top: 0, behavior: "smooth" });
                           }
                         }}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-[#FAF7F2] text-[13px] font-medium text-[#1c1917] hover:text-[#ba4e1a] transition-all duration-200 group cursor-pointer"
+                        className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a] transition-all group"
                       >
-                        <span className="group-hover:translate-x-0.5 transition-transform duration-200 truncate">
+                        <span className="group-hover:translate-x-0.5 transition-transform">
                           {cat.name}
                         </span>
-                        <span className="text-[11.5px] text-[#8c827a] font-normal group-hover:text-[#ba4e1a] transition-colors shrink-0 ml-2.5">
+                        <span className="text-[11px] text-[#8c827a] font-normal group-hover:text-[#ba4e1a] transition-colors ml-2">
                           ({cat.count})
                         </span>
                       </Link>
@@ -451,59 +326,85 @@ export function Navbar() {
             {/* 4. À propos */}
             <Link
               href="/a-propos"
-              onClick={(e) => handleNavLinkClick(e, { id: "a-propos", href: "/a-propos" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
+              onClick={() => setActiveSection("a-propos")}
+              className={`text-[13px] tracking-wide transition-colors relative py-0.5 font-semibold ${
                 pathname === "/a-propos"
-                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
-                  : "text-[#1c1917] hover:text-[#c4622d]"
+                  ? "text-[#ba4e1a] font-bold"
+                  : isDark
+                  ? "text-white/85 hover:text-white"
+                  : "text-[#1c1917] hover:text-[#ba4e1a]"
               }`}
             >
               À propos
+              {pathname === "/a-propos" && (
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#ba4e1a] rounded-full" />
+              )}
             </Link>
 
             {/* 5. Contact */}
             <Link
               href="/contact"
-              onClick={(e) => handleNavLinkClick(e, { id: "contact", href: "/contact" })}
-              className={`text-[13px] tracking-wide transition-colors relative py-1 font-semibold ${
+              onClick={() => setActiveSection("contact")}
+              className={`text-[13px] tracking-wide transition-colors relative py-0.5 font-semibold ${
                 pathname === "/contact"
-                  ? "text-[#c4622d] font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#c4622d] after:rounded-full"
-                  : "text-[#1c1917] hover:text-[#c4622d]"
+                  ? "text-[#ba4e1a] font-bold"
+                  : isDark
+                  ? "text-white/85 hover:text-white"
+                  : "text-[#1c1917] hover:text-[#ba4e1a]"
               }`}
             >
               Contact
+              {pathname === "/contact" && (
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#ba4e1a] rounded-full" />
+              )}
             </Link>
-          </div>
+          </nav>
 
-          {/* Right: Exact Order Requested -> [FR / AR] then [Favoris] then [Panier on FAR RIGHT] */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
-
+          <div className="pointer-events-auto flex items-center space-x-2.5 sm:space-x-3.5 h-full">
             {/* 1. Language Selector: FR / AR Div */}
-            <div className="flex items-center p-0.5 bg-[#ffffff] border border-[#ebd8be] rounded-full shadow-2xs">
+            <div
+              className={`flex items-center p-0.5 rounded-full shadow-2xs transition-all duration-900 cubic-bezier(0.16, 1, 0.3, 1) ${
+                isDark
+                  ? "bg-[#141210]/85 border border-white/10 backdrop-blur-md"
+                  : "bg-white/80 border border-[#ebd8be] backdrop-blur-md"
+              }`}
+            >
               <button
                 onClick={() => setCurrentLang("FR")}
-                className={`px-2 py-0.5 text-[11px] font-bold rounded-full transition-all duration-200 ${currentLang === "FR"
-                    ? "bg-[#1c1917] text-[#ffffff] shadow-xs"
+                className={`px-2 py-0.5 text-[10.5px] font-bold rounded-full transition-all duration-200 cursor-pointer ${
+                  currentLang === "FR"
+                    ? isDark
+                      ? "bg-white text-black shadow-xs"
+                      : "bg-[#1c1917] text-white shadow-xs"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
                     : "text-[#1c1917]/70 hover:text-[#1c1917]"
-                  }`}
+                }`}
               >
                 FR
               </button>
               <button
                 onClick={() => setCurrentLang("AR")}
-                className={`px-2 py-0.5 text-[11px] font-bold rounded-full transition-all duration-200 ${currentLang === "AR"
-                    ? "bg-[#1c1917] text-[#ffffff] shadow-xs"
+                className={`px-2 py-0.5 text-[10.5px] font-bold rounded-full transition-all duration-200 cursor-pointer ${
+                  currentLang === "AR"
+                    ? isDark
+                      ? "bg-white text-black shadow-xs"
+                      : "bg-[#1c1917] text-white shadow-xs"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
                     : "text-[#1c1917]/70 hover:text-[#1c1917]"
-                  }`}
+                }`}
               >
                 AR
               </button>
             </div>
 
-            {/* 2. Bouton Recherche (Recherche intelligente produits) - Entre [FR/AR] et [Favoris] */}
+            {/* 2. Bouton Recherche */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-1.5 text-[#1c1917] hover:text-[#c4622d] relative transition-colors cursor-pointer group"
+              className={`p-1.5 transition-colors cursor-pointer group ${
+                isDark ? "text-white/90 hover:text-[#ba4e1a]" : "text-[#1c1917] hover:text-[#ba4e1a]"
+              }`}
               title="Rechercher des produits"
               aria-label="Recherche"
             >
@@ -513,345 +414,168 @@ export function Navbar() {
             {/* 3. Favoris (Wishlist Drawer) */}
             <button
               onClick={openWishlist}
-              className="p-1.5 text-[#1c1917] hover:text-[#c4622d] relative transition-colors cursor-pointer"
+              className={`p-1.5 relative transition-colors cursor-pointer group ${
+                isDark ? "text-white/90 hover:text-[#ba4e1a]" : "text-[#1c1917] hover:text-[#ba4e1a]"
+              }`}
               title="Mes Favoris"
               aria-label="Favoris"
             >
-              <Heart className="w-5 h-5 stroke-[1.8]" />
+              <Heart className="w-5 h-5 stroke-[1.8] transition-transform group-hover:scale-110" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#c4622d] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ba4e1a] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                   {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* 4. Panier (Cart Page /panier) - FAR RIGHT as requested */}
+            {/* 4. Panier (Cart Page /panier) */}
             <Link
               href="/panier"
-              className="p-1.5 text-[#1c1917] hover:text-[#c4622d] relative transition-colors cursor-pointer"
+              className={`p-1.5 relative transition-colors cursor-pointer group ${
+                isDark ? "text-white/90 hover:text-[#ba4e1a]" : "text-[#1c1917] hover:text-[#ba4e1a]"
+              }`}
               title="Mon Panier"
               aria-label="Panier"
             >
-              <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
+              <ShoppingBag className="w-5 h-5 stroke-[1.8] transition-transform group-hover:scale-110" />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#c4622d] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ba4e1a] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                   {totalItems}
                 </span>
               )}
             </Link>
 
-          </div>
-        </div>
-      </div>
-
-      {/* ================= FUSED HERO CARD & CONNECTOR NECK (Unified Solid Container) ================= */}
-      {pathname === "/" && (
-        <div
-          className={`fused-hero-card-container absolute -left-[1px] top-full w-full max-w-[385px] sm:max-w-[445px] lg:max-w-[485px] z-20 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            !isFusedHero
-              ? "opacity-0 -translate-y-8 scale-[0.96] pointer-events-none"
-              : "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-          }`}
-          style={{
-            transformOrigin: "top left",
-            willChange: "transform, opacity",
-          }}
-        >
-          {/* Connector Neck: 100% Vector Driven - Zero Cover Strips */}
-          <div
-            className="relative h-[70px] pointer-events-none z-20"
-            style={{
-              width: 240,
-              borderLeft: "1px solid rgba(235, 216, 190, 0.8)",
-            }}
-          >
-            <svg
-              width="240"
-              height="70"
-              viewBox="0 0 240 70"
-              className="w-[240px] h-[70px] block overflow-visible pointer-events-none"
-              fill="none"
-            >
-              <defs>
-                <linearGradient
-                  id="neckArcBorder"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="70"
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <stop offset="0%" stopColor="#ddcab3" />
-                  <stop offset="100%" stopColor="#e8d8c2" />
-                </linearGradient>
-              </defs>
-              {/* Pure solid white fill: extends 4px into nav and 4px into card so no horizontal seam can exist */}
-              <path
-                d="M 0 -4 L 240 -4 L 240 0.5 A 34.5 34.5 0 0 0 240 69.5 L 240 74 L 0 74 Z"
-                fill="#ffffff"
-              />
-              {/* Perimeter border: Concave turnaround arc A 34.5 34.5 perfectly color-calibrated to nav bottom (#ddcab3) and card top (#e8d8c2) */}
-              <path
-                d="M 240 0.5 A 34.5 34.5 0 0 0 240 69.5"
-                fill="none"
-                stroke="url(#neckArcBorder)"
-                strokeWidth="1"
-              />
-            </svg>
-          </div>
-
-          {/* Hero Content Card */}
-          <div className="relative w-full z-10 -mt-[1px]">
-            <div
-              className="p-5 sm:p-6 lg:p-6.5 rounded-b-[32px] rounded-tr-[28px] rounded-tl-none relative flex flex-col space-y-3.5 sm:space-y-4 shadow-[0_20px_45px_-12px_rgba(0,0,0,0.08)] box-border"
-              style={{
-                background:
-                  "linear-gradient(180deg, #ffffff 0%, #ffffff 22%, rgba(255, 255, 255, 0.85) 55%, rgba(255, 255, 255, 0.50) 82%, rgba(255, 255, 255, 0.32) 100%)",
-                backdropFilter: "blur(28px) saturate(180%)",
-                WebkitBackdropFilter: "blur(28px) saturate(180%)",
-                border: "1px solid rgba(235, 216, 190, 0.8)",
-              }}
-            >
-              {/* Headline */}
-              <div>
-                <h1 className="text-2xl sm:text-[27px] lg:text-[29px] font-serif font-black tracking-tight text-[#1c1917] leading-[1.16]">
-                  L’artisanat marocain, <br />
-                  <span className="text-[#a84414]">au cœur de votre intérieur</span>
-                </h1>
-
-                {/* Moroccan authentic geometric motif (Khatam zellige) */}
-                <div className="flex items-center gap-2 pt-2.5 pb-1">
-                  <svg
-                    className="w-4 h-4 text-[#a84414] shrink-0"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="5" y="5" width="14" height="14" rx="1.5" />
-                    <rect x="5" y="5" width="14" height="14" rx="1.5" transform="rotate(45 12 12)" />
-                    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                  </svg>
-                  <div className="w-16 h-[1.5px] bg-gradient-to-r from-[#a84414] via-[#a84414]/40 to-transparent rounded-full" />
-                </div>
-              </div>
-
-              {/* Value Proposition Description - spaced comfortably */}
-              <p className="text-xs sm:text-[13px] text-[#1c1917]/85 leading-relaxed font-medium pt-1">
-                Découvrez des créations uniques mêlant bois, métal et motifs marocains, pensées pour apporter une touche d&apos;authenticité et d&apos;élégance à votre espace.
-              </p>
-
-              {/* 3 Piliers de Réassurance Client (COD, Toutes Villes, Anti-Casse) */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-2.5 pt-0.5">
-                {/* Pilier 1 : Paiement COD */}
-                <div
-                  className="p-2 sm:p-2.5 rounded-2xl flex flex-col justify-between gap-1.5 transition-all duration-300 hover:bg-white/90 hover:shadow-xs group cursor-default"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.70)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255, 255, 255, 0.85)",
-                  }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#f5ede2] border border-[#ebd8be]/50 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Banknote className="w-3.5 h-3.5 text-[#a84414]" />
-                    </div>
-                    <p className="text-[11px] sm:text-xs font-bold text-[#1c1917] tracking-tight whitespace-nowrap">
-                      Paiement COD
-                    </p>
-                  </div>
-                  <p className="text-[9.5px] sm:text-[10px] text-[#1c1917]/70 font-medium leading-tight pl-0.5">
-                    À la réception
-                  </p>
-                </div>
-
-                {/* Pilier 2 : Toutes Villes */}
-                <div
-                  className="p-2 sm:p-2.5 rounded-2xl flex flex-col justify-between gap-1.5 transition-all duration-300 hover:bg-white/90 hover:shadow-xs group cursor-default"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.70)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255, 255, 255, 0.85)",
-                  }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#f5ede2] border border-[#ebd8be]/50 flex items-center justify-center shrink-0 shadow-2xs">
-                      <Truck className="w-3.5 h-3.5 text-[#a84414]" />
-                    </div>
-                    <p className="text-[11px] sm:text-xs font-bold text-[#1c1917] tracking-tight whitespace-nowrap">
-                      Toutes Villes
-                    </p>
-                  </div>
-                  <p className="text-[9.5px] sm:text-[10px] text-[#1c1917]/70 font-medium leading-tight pl-0.5">
-                    Express 48h–72h
-                  </p>
-                </div>
-
-                {/* Pilier 3 : Anti-Casse */}
-                <div
-                  className="p-2 sm:p-2.5 rounded-2xl flex flex-col justify-between gap-1.5 transition-all duration-300 hover:bg-white/90 hover:shadow-xs group cursor-default"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.70)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255, 255, 255, 0.85)",
-                  }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#f5ede2] border border-[#ebd8be]/50 flex items-center justify-center shrink-0 shadow-2xs">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#a84414]" />
-                    </div>
-                    <p className="text-[11px] sm:text-xs font-bold text-[#1c1917] tracking-tight whitespace-nowrap">
-                      Anti–Casse
-                    </p>
-                  </div>
-                  <p className="text-[9.5px] sm:text-[10px] text-[#1c1917]/70 font-medium leading-tight pl-0.5">
-                    Échange garanti
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons - sits directly and comfortably under description */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1.5 sm:pt-2">
-                <Link
-                  href="/boutique"
-                  className="group flex-1 px-4 py-2.5 bg-gradient-to-r from-[#ba4e1a] to-[#9c3a0c] hover:from-[#9c3a0c] hover:to-[#822f08] text-white font-extrabold text-xs rounded-xl transition-all duration-300 shadow-md shadow-[#ba4e1a]/30 hover:shadow-lg hover:shadow-[#ba4e1a]/40 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-white" />
-                  <span>Explorer la Boutique</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-white transition-transform duration-300 group-hover:translate-x-0.5" />
-                </Link>
-
-                <button
-                  onClick={() => {
-                    const el = document.getElementById("a-propos");
-                    el?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 text-xs font-black text-[#1c1917] hover:text-[#9c3a0c] hover:bg-white active:scale-95 cursor-pointer whitespace-nowrap hover:-translate-y-0.5 border border-[#ebd8be]/60 bg-white/70"
-                >
-                  <Users className="w-3.5 h-3.5 text-[#a84414]" />
-                  <span>Notre Histoire</span>
-                </button>
-              </div>
+            {/* 5. Mobile Menu Toggle Button */}
+            <div className="flex items-center md:hidden pl-1">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`p-1.5 transition-colors cursor-pointer ${
+                  isDark ? "text-white/90 hover:text-[#ba4e1a]" : "text-[#1c1917] hover:text-[#ba4e1a]"
+                }`}
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
-        <div className="relative z-10 md:hidden mt-2 mx-2 mb-3 bg-[#ffffff]/95 backdrop-blur-xl border border-[#ebd8be]/60 rounded-2xl px-4 py-3 space-y-1 shadow-lg animate-in slide-in-from-top-2">
-          {/* Accueil */}
-          <Link
-            href="/"
-            onClick={(e) => {
-              setMobileMenuOpen(false);
-              handleNavLinkClick(e, { id: "accueil", href: "/" });
-            }}
-            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              pathname === "/" && activeSection === "accueil"
-                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
-                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
-            }`}
-          >
-            Accueil
-          </Link>
-
-          {/* Boutique */}
-          <Link
-            href="/boutique"
-            onClick={(e) => {
-              setMobileMenuOpen(false);
-              handleNavLinkClick(e, { id: "boutique", href: "/boutique" });
-            }}
-            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              pathname === "/boutique"
-                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
-                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
-            }`}
-          >
-            Boutique
-          </Link>
-
-          {/* Catégories Accordion (Mobile) */}
-          <div className="rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setMobileCategoriesOpen((prev) => !prev)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d] transition-colors cursor-pointer"
-            >
-              <span>Catégories</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform duration-200 ${
-                  mobileCategoriesOpen ? "rotate-180 text-[#c4622d]" : "text-[#78716c]"
+        {/* ========================================================================= */}
+        {/* MOBILE MENU DROPDOWN (Responsive Navigation) */}
+        {/* ========================================================================= */}
+        {mobileMenuOpen && (
+          <div className="pointer-events-auto md:hidden max-w-md mx-auto mt-2 px-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-white/95 backdrop-blur-xl border border-[#ebd8be] rounded-2xl p-4 shadow-xl space-y-1">
+              {/* Accueil */}
+              <Link
+                href="/"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setActiveSection("accueil");
+                }}
+                className={`block px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === "/" && activeSection === "accueil"
+                    ? "bg-[#ba4e1a]/10 text-[#ba4e1a] font-bold"
+                    : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a]"
                 }`}
-              />
-            </button>
+              >
+                Accueil
+              </Link>
 
-            {mobileCategoriesOpen && (
-              <div className="pl-3 pr-2 py-1 space-y-0.5 bg-[#FAF7F2]/70 rounded-xl my-1 border border-[#EDE9E6]">
-                {navCategories.map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    href={`/boutique?category=${cat.slug}`}
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileCategoriesOpen(false);
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(
-                          new CustomEvent("marjad_category_selected", { detail: cat.slug })
-                        );
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }
-                    }}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-[#1c1917] hover:bg-white hover:text-[#c4622d] transition-colors"
-                  >
-                    <span>{cat.name}</span>
-                    <span className="text-[11px] text-[#8c827a]">({cat.count})</span>
-                  </Link>
-                ))}
+              {/* Boutique */}
+              <Link
+                href="/boutique"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setActiveSection("boutique");
+                }}
+                className={`block px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === "/boutique"
+                    ? "bg-[#ba4e1a]/10 text-[#ba4e1a] font-bold"
+                    : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a]"
+                }`}
+              >
+                Boutique
+              </Link>
+
+              {/* Catégories Accordion (Mobile) */}
+              <div className="rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileCategoriesOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a] transition-colors cursor-pointer"
+                >
+                  <span>Catégories</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      mobileCategoriesOpen ? "rotate-180 text-[#ba4e1a]" : "text-[#78716c]"
+                    }`}
+                  />
+                </button>
+
+                {mobileCategoriesOpen && (
+                  <div className="pl-3 pr-2 py-1 space-y-0.5 bg-[#FAF7F2]/70 rounded-xl my-1 border border-[#EDE9E6]">
+                    {navCategories.map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        href={`/boutique?category=${cat.slug}`}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          setMobileCategoriesOpen(false);
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("marjad_category_selected", { detail: cat.slug })
+                            );
+                          }
+                        }}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-[#1c1917] hover:bg-white hover:text-[#ba4e1a] transition-colors"
+                      >
+                        <span>{cat.name}</span>
+                        <span className="text-[11px] text-[#8c827a]">({cat.count})</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* À propos */}
+              <Link
+                href="/a-propos"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setActiveSection("a-propos");
+                }}
+                className={`block px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === "/a-propos"
+                    ? "bg-[#ba4e1a]/10 text-[#ba4e1a] font-bold"
+                    : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a]"
+                }`}
+              >
+                À propos
+              </Link>
+
+              {/* Contact */}
+              <Link
+                href="/contact"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setActiveSection("contact");
+                }}
+                className={`block px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === "/contact"
+                    ? "bg-[#ba4e1a]/10 text-[#ba4e1a] font-bold"
+                    : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#ba4e1a]"
+                }`}
+              >
+                Contact
+              </Link>
+            </div>
           </div>
+        )}
+      </header>
 
-          {/* À propos */}
-          <Link
-            href="/a-propos"
-            onClick={(e) => {
-              setMobileMenuOpen(false);
-              handleNavLinkClick(e, { id: "a-propos", href: "/a-propos" });
-            }}
-            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              pathname === "/a-propos"
-                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
-                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
-            }`}
-          >
-            À propos
-          </Link>
-
-          {/* Contact */}
-          <Link
-            href="/contact"
-            onClick={(e) => {
-              setMobileMenuOpen(false);
-              handleNavLinkClick(e, { id: "contact", href: "/contact" });
-            }}
-            className={`block px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              pathname === "/contact"
-                ? "bg-[#c4622d]/10 text-[#c4622d] font-bold"
-                : "text-[#1c1917] hover:bg-[#faf7f2] hover:text-[#c4622d]"
-            }`}
-          >
-            Contact
-          </Link>
-        </div>
-      )}
-    </nav>
-    
-    {/* Modal de recherche intelligente & catalogue */}
-    <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {/* Modal de recherche intelligente & catalogue */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 }

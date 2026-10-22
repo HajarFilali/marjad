@@ -59,7 +59,7 @@ html, body {
   letter-spacing: -0.012em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  text-rendering: auto;
   overflow-x: clip;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -155,28 +155,12 @@ input:autofill {
   filter: none !important;
 }
 
-/* Anti-flash & scroll state overrides for hero card, promo bar and navbar */
-html.is-scrolled-page .fused-hero-card-container {
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
+/* Scroll state overrides for promo bar */
 html.is-scrolled-page .promo-bar-container {
   display: none !important;
   opacity: 0 !important;
   transform: translateY(-100%) !important;
   pointer-events: none !important;
-}
-
-html.is-scrolled-page nav {
-  top: 12px !important;
-  border-bottom-left-radius: 9999px !important;
-}
-
-html.is-scrolled-page nav > .nav-bg-overlay {
-  border-bottom-left-radius: 9999px !important;
-  background: #ffffff !important;
 }
 
 /* Animation luxueuse lors du changement d'étape dans la Roadmap */
@@ -196,5 +180,23 @@ html.is-scrolled-page nav > .nav-bg-overlay {
 .animate-phase-switch {
   animation: marjadPhaseIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Continuous luxury ticker from right to left */
+@keyframes marjadMarqueeLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  animation: marjadMarqueeLeft 28s linear infinite;
+  will-change: transform;
+}
+
 
 
